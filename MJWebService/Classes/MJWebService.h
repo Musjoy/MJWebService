@@ -7,7 +7,9 @@
 //  网络请求类
 
 #import <Foundation/Foundation.h>
-@import AFNetworking;
+#import "AFHTTPSessionManager.h"
+#import "AFNetworkReachabilityManager.h"
+
 
 #ifndef MODULE_WEB_SERVICE
 #define MODULE_WEB_SERVICE
