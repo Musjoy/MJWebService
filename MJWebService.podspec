@@ -9,7 +9,7 @@
 Pod::Spec.new do |s|
   s.name             = "MJWebService"
   s.version          = "0.1.0"
-  s.summary          = "A short description of MJWebService."
+  s.summary          = "Encapsulation For AFNetworking."
 
 # This description is used to generate tags and improve search results.
 #   * Think: What does it do? Why did you write it? What is the focus?
@@ -20,21 +20,21 @@ Pod::Spec.new do |s|
   s.description      = <<-DESC
                        DESC
 
-  s.homepage         = "https://github.com/<GITHUB_USERNAME>/MJWebService"
+  s.homepage         = "https://github.com/Musjoy/MJWebService"
   # s.screenshots     = "www.example.com/screenshots_1", "www.example.com/screenshots_2"
   s.license          = 'MIT'
   s.author           = { "Raymond" => "Ray.musjoy@qq.com" }
-  s.source           = { :git => "https://github.com/<GITHUB_USERNAME>/MJWebService.git", :tag => s.version.to_s }
+  s.source           = { :git => "https://github.com/Musjoy/MJWebService.git", :tag => s.version.to_s }
   # s.social_media_url = 'https://twitter.com/<TWITTER_USERNAME>'
 
-  s.ios.deployment_target = '8.0'
+  s.ios.deployment_target = '7.0'
 
   s.source_files = 'MJWebService/Classes/**/*'
   s.resource_bundles = {
     'MJWebService' => ['MJWebService/Assets/*.png']
   }
 
-  # s.public_header_files = 'Pod/Classes/**/*.h'
+  s.public_header_files = 'Pod/Classes/**/*.h'
   # s.frameworks = 'UIKit', 'MapKit'
-  # s.dependency 'AFNetworking', '~> 2.3'
+  s.dependency 'AFNetworking/NSURLSession', '~> 3.1.0'
 end
