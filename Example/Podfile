@@ -1,0 +1,8 @@
+use_frameworks!
+
+
+target 'MJWebService_Tests', :exclusive => true do
+  pod 'MJWebService', :path => '../'
+
+  
+end
