@@ -22,7 +22,7 @@ pod "MJWebService"
 
 ## Author
 
-Raymond, Ray.musjoy@qq.com
+Raymond, Ray.musjoy@gmail.com
 
 ## License
 
