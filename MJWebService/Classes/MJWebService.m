@@ -9,13 +9,6 @@
 #import "MJWebService.h"
 
 
-#ifndef LogInfo
-#define LogTrace(fmt, ...)  NSLog((@"[trace] "fmt), ##__VA_ARGS__)
-#define LogInfo(fmt, ...)   NSLog((@"[info] "fmt), ##__VA_ARGS__)
-#define LogError(fmt, ...)  NSLog((@"[***ERROR***] "fmt), ##__VA_ARGS__)
-#endif
-
-
 #define REQUEST_TIMEOUT 30
 #define UPLOAD_TIMEOUT 120
 #define DOWNLOAD_TIMEOUT 60
@@ -256,7 +249,7 @@ static AFNetworkReachabilityManager *s_hostReach = nil;
         return NSURLSessionAuthChallengeUseCredential;
     }];
     
-    [manager downloadTaskWithRequest:request progress:^(NSProgress * _Nonnull downloadProgress) {
+    NSURLSessionDownloadTask *downloadTask = [manager downloadTaskWithRequest:request progress:^(NSProgress * _Nonnull downloadProgress) {
         //下载进度
         float progress = (float)downloadProgress.completedUnitCount / downloadProgress.totalUnitCount;
         //下载完成...该方法会在下载完成后立即执行
@@ -298,7 +291,7 @@ static AFNetworkReachabilityManager *s_hostReach = nil;
             });
         }
     }];
-    
+    [downloadTask resume];
 }
 
 

@@ -4,16 +4,12 @@
 //
 //  Created by 黄磊 on 16/4/6.
 //  Copyright © 2016年 Musjoy. All rights reserved.
-//  网络请求类
+//  网络请求类<MODULE_WEB_SERVICE>
 
 #import <Foundation/Foundation.h>
 #import "AFHTTPSessionManager.h"
 #import "AFNetworkReachabilityManager.h"
 
-
-#ifndef MODULE_WEB_SERVICE
-#define MODULE_WEB_SERVICE
-#endif
 
 // 通知
 /// 网络状态变化通知
