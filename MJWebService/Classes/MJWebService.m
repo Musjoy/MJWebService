@@ -17,6 +17,9 @@
 
 static AFNetworkReachabilityManager *s_hostReach = nil;
 
+static AFNetworkReachabilityStatus g_reachableState = AFNetworkReachabilityStatusUnknown;
+
+
 @interface MJWebService ()
 
 
@@ -32,7 +35,7 @@ static AFNetworkReachabilityManager *s_hostReach = nil;
         g_reachableState = AFNetworkReachabilityStatusUnknown;
         s_hostReach = [AFNetworkReachabilityManager sharedManager];
         [s_hostReach setReachabilityStatusChangeBlock:^(AFNetworkReachabilityStatus status) {
-//            LogTrace(@"Reachability changed to [%@]!", AFStringFromNetworkReachabilityStatus(status));
+            LogTrace(@"Reachability changed to [%@]!", AFStringFromNetworkReachabilityStatus(status));
             g_reachableState = status;
             [[NSNotificationCenter defaultCenter] postNotificationName:kNoticReachabilityChange object:[NSNumber numberWithInteger:g_reachableState]];
             if (g_reachableState == AFNetworkReachabilityStatusNotReachable) {
@@ -42,7 +45,13 @@ static AFNetworkReachabilityManager *s_hostReach = nil;
             }
         }];
         [s_hostReach startMonitoring];  //开始监听，会启动一个run loop
+        g_reachableState = s_hostReach.networkReachabilityStatus;
     }
+}
+
++ (AFNetworkReachabilityStatus)reachableState
+{
+    return g_reachableState;
 }
 
 
@@ -57,7 +66,7 @@ static AFNetworkReachabilityManager *s_hostReach = nil;
     if (g_reachableState == AFNetworkReachabilityStatusNotReachable) {
         NSError *err = [[NSError alloc] initWithDomain:sNetworkErrorMsg code:sNetworkOffNet userInfo:nil];
         if (fblock) {
-            fblock(nil, err);
+            fblock(err);
         }
         return NO;
     }
@@ -72,6 +81,13 @@ static AFNetworkReachabilityManager *s_hostReach = nil;
     manager.requestSerializer = [AFHTTPRequestSerializer serializer];
     manager.responseSerializer = [AFJSONResponseSerializer serializer];
     [manager.requestSerializer setTimeoutInterval:REQUEST_TIMEOUT];
+    
+    if ([body[@"Authorization"] length] > 0) {
+        [manager.requestSerializer setValue:body[@"Authorization"]
+                         forHTTPHeaderField:@"Authorization"];
+
+    }
+    
     // 信任无效证实
     [manager setSessionDidReceiveAuthenticationChallengeBlock:^NSURLSessionAuthChallengeDisposition(NSURLSession * _Nonnull session, NSURLAuthenticationChallenge * _Nonnull challenge, NSURLCredential *__autoreleasing  _Nullable * _Nullable credential) {
         *credential = [NSURLCredential credentialForTrust:challenge.protectionSpace.serverTrust];
@@ -82,14 +98,14 @@ static AFNetworkReachabilityManager *s_hostReach = nil;
         // 请求成功
         LogInfo(@"...>>>...receiveData = %@", responseObject);
         if (sblock) {
-            sblock(task, responseObject);
+            sblock(responseObject);
         }
         
     } failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
         // 请求失败
         LogError(@"...>>>...Network error: %@\n", task.response);
         if (fblock) {
-            fblock(task, error);
+            fblock(error);
         }
     }];
     return YES;
@@ -106,7 +122,7 @@ static AFNetworkReachabilityManager *s_hostReach = nil;
     if (g_reachableState == AFNetworkReachabilityStatusNotReachable) {
         NSError *err = [[NSError alloc] initWithDomain:sNetworkErrorMsg code:sNetworkOffNet userInfo:nil];
         if (fblock) {
-            fblock(nil, err);
+            fblock(err);
         }
         return NO;
     }
@@ -126,22 +142,137 @@ static AFNetworkReachabilityManager *s_hostReach = nil;
         return NSURLSessionAuthChallengeUseCredential;
     }];
     
+    if ([body[@"Authorization"] length] > 0) {
+        [manager.requestSerializer setValue:body[@"Authorization"]
+                         forHTTPHeaderField:@"Authorization"];
+        
+    }
+    
     [manager POST:pathUrl parameters:body progress:nil success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
         // 请求成功
         LogInfo(@"...>>>...receiveData = %@", responseObject);
         if (sblock) {
-            sblock(task, responseObject);
+            sblock(responseObject);
         }
         
     } failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
         // 请求失败
         LogError(@"...>>>...Network error: %@\n", error);
         if (fblock) {
-            fblock(task, error);
+            fblock(error);
         }
     }];
     return YES;
 }
+
+#pragma mark - 发起Put请求
+
++ (BOOL)startPut:(NSString *)serverUrl
+            body:(NSDictionary *)body
+         success:(RequestSuccessBlock)sblock
+         failure:(RequestFailureBlock)fblock
+{
+    [self dataInit];
+    if (g_reachableState == AFNetworkReachabilityStatusNotReachable) {
+        NSError *err = [[NSError alloc] initWithDomain:sNetworkErrorMsg code:sNetworkOffNet userInfo:nil];
+        if (fblock) {
+            fblock(err);
+        }
+        return NO;
+    }
+    
+    // 拼接请求url
+    NSString *pathUrl = serverUrl;
+    LogTrace(@"...>>>...requestUrl:%@\n", pathUrl);
+    LogInfo(@"...>>>...requestBody:%@\n", body);
+    
+    AFHTTPSessionManager *manager=[AFHTTPSessionManager manager];
+    
+    manager.requestSerializer = [AFHTTPRequestSerializer serializer];
+    manager.responseSerializer = [AFJSONResponseSerializer serializer];
+    [manager.requestSerializer setTimeoutInterval:REQUEST_TIMEOUT];
+    [manager setSessionDidReceiveAuthenticationChallengeBlock:^NSURLSessionAuthChallengeDisposition(NSURLSession * _Nonnull session, NSURLAuthenticationChallenge * _Nonnull challenge, NSURLCredential *__autoreleasing  _Nullable * _Nullable credential) {
+        *credential = [NSURLCredential credentialForTrust:challenge.protectionSpace.serverTrust];
+        return NSURLSessionAuthChallengeUseCredential;
+    }];
+    
+    if ([body[@"Authorization"] length] > 0) {
+        [manager.requestSerializer setValue:body[@"Authorization"]
+                         forHTTPHeaderField:@"Authorization"];
+        
+    }
+    
+    [manager PUT:pathUrl parameters:body success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
+        // 请求成功
+        LogInfo(@"...>>>...receiveData = %@", responseObject);
+        if (sblock) {
+            sblock(responseObject);
+        }
+        
+    } failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
+        // 请求失败
+        LogError(@"...>>>...Network error: %@\n", error);
+        if (fblock) {
+            fblock(error);
+        }
+    }];
+    return YES;
+}
+
+#pragma mark - 发起Put请求
+
++ (BOOL)startDelete:(NSString *)serverUrl
+               body:(NSDictionary *)body
+            success:(RequestSuccessBlock)sblock
+            failure:(RequestFailureBlock)fblock
+{
+    [self dataInit];
+    if (g_reachableState == AFNetworkReachabilityStatusNotReachable) {
+        NSError *err = [[NSError alloc] initWithDomain:sNetworkErrorMsg code:sNetworkOffNet userInfo:nil];
+        if (fblock) {
+            fblock(err);
+        }
+        return NO;
+    }
+    
+    // 拼接请求url
+    NSString *pathUrl = serverUrl;
+    LogTrace(@"...>>>...requestUrl:%@\n", pathUrl);
+    LogInfo(@"...>>>...requestBody:%@\n", body);
+    
+    AFHTTPSessionManager *manager=[AFHTTPSessionManager manager];
+    
+    manager.requestSerializer = [AFHTTPRequestSerializer serializer];
+    manager.responseSerializer = [AFJSONResponseSerializer serializer];
+    [manager.requestSerializer setTimeoutInterval:REQUEST_TIMEOUT];
+    [manager setSessionDidReceiveAuthenticationChallengeBlock:^NSURLSessionAuthChallengeDisposition(NSURLSession * _Nonnull session, NSURLAuthenticationChallenge * _Nonnull challenge, NSURLCredential *__autoreleasing  _Nullable * _Nullable credential) {
+        *credential = [NSURLCredential credentialForTrust:challenge.protectionSpace.serverTrust];
+        return NSURLSessionAuthChallengeUseCredential;
+    }];
+    
+    if ([body[@"Authorization"] length] > 0) {
+        [manager.requestSerializer setValue:body[@"Authorization"]
+                         forHTTPHeaderField:@"Authorization"];
+        
+    }
+    
+    [manager DELETE:pathUrl parameters:body success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
+        // 请求成功
+        LogInfo(@"...>>>...receiveData = %@", responseObject);
+        if (sblock) {
+            sblock(responseObject);
+        }
+        
+    } failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
+        // 请求失败
+        LogError(@"...>>>...Network error: %@\n", error);
+        if (fblock) {
+            fblock(error);
+        }
+    }];
+    return YES;
+}
+
 
 /** 多文件上传 */
 + (BOOL)startUploadFiles:(NSString *)serverUrl
@@ -154,7 +285,7 @@ static AFNetworkReachabilityManager *s_hostReach = nil;
     if (g_reachableState == AFNetworkReachabilityStatusNotReachable) {
         NSError *err = [[NSError alloc] initWithDomain:sNetworkErrorMsg code:sNetworkOffNet userInfo:nil];
         if (fblock) {
-            fblock(nil, err);
+            fblock(err);
         }
         return NO;
     }
@@ -173,6 +304,12 @@ static AFNetworkReachabilityManager *s_hostReach = nil;
         *credential = [NSURLCredential credentialForTrust:challenge.protectionSpace.serverTrust];
         return NSURLSessionAuthChallengeUseCredential;
     }];
+    
+    if ([body[@"Authorization"] length] > 0) {
+        [manager.requestSerializer setValue:body[@"Authorization"]
+                         forHTTPHeaderField:@"Authorization"];
+        
+    }
     
     [manager POST:pathUrl parameters:body constructingBodyWithBlock:^(id<AFMultipartFormData>  _Nonnull formData) {
         for (NSString *filePath in files) {
@@ -196,13 +333,13 @@ static AFNetworkReachabilityManager *s_hostReach = nil;
         // 请求成功
         LogInfo(@"...>>>...receiveData = %@", responseObject);
         if (sblock) {
-            sblock(task, responseObject);
+            sblock(responseObject);
         }
     } failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
         // 请求失败
         LogError(@"...>>>...Network error: %@\n", task.response);
         if (fblock) {
-            fblock(task, error);
+            fblock(error);
         }
     }];
     return YES;

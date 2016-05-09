@@ -26,19 +26,18 @@ static NSString *const kNoticLoseNetwork        = @"NoticLoseNetwork";
 #define sNetworkErrorMsg            @"Network Error"
 
 
-static AFNetworkReachabilityStatus g_reachableState;
-
 
 //操作成功（网络请求成功，返回值Success = true,两个条件同时成立，才会回调该方法）
-typedef void (^RequestSuccessBlock)(NSURLSessionDataTask *task, id respond);
+typedef void (^RequestSuccessBlock)(id respond);
 //操作失败（网络原因的失败，或者返回值Success != true则执行下面的回调）
-typedef void (^RequestFailureBlock)(NSURLSessionDataTask *task, NSError *error);
+typedef void (^RequestFailureBlock)(NSError *error);
 
 
 @interface MJWebService : NSObject
 
 + (void)dataInit;
 
++ (AFNetworkReachabilityStatus)reachableState;
 
 + (BOOL)startGet:(NSString *)serverUrl
             body:(NSDictionary *)body
@@ -61,7 +60,15 @@ typedef void (^RequestFailureBlock)(NSURLSessionDataTask *task, NSError *error);
           success:(RequestSuccessBlock)sblock
           failure:(RequestFailureBlock)fblock;
 
++ (BOOL)startPut:(NSString *)serverUrl
+            body:(NSDictionary *)body
+         success:(RequestSuccessBlock)sblock
+         failure:(RequestFailureBlock)fblock;
 
++ (BOOL)startDelete:(NSString *)serverUrl
+               body:(NSDictionary *)body
+            success:(RequestSuccessBlock)sblock
+            failure:(RequestFailureBlock)fblock;
 /**
  *	@brief	多文件上传接口
  *
