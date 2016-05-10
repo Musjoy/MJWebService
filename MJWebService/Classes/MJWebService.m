@@ -134,7 +134,11 @@ static AFNetworkReachabilityStatus g_reachableState = AFNetworkReachabilityStatu
     
     AFHTTPSessionManager *manager=[AFHTTPSessionManager manager];
     
-    manager.requestSerializer = [AFHTTPRequestSerializer serializer];
+    if (body[@"isJsonRequest"] && [body[@"isJsonRequest"] boolValue]) {
+        manager.requestSerializer = [AFJSONRequestSerializer serializer];
+    } else {
+        manager.requestSerializer = [AFHTTPRequestSerializer serializer];
+    }
     manager.responseSerializer = [AFJSONResponseSerializer serializer];
     [manager.requestSerializer setTimeoutInterval:REQUEST_TIMEOUT];
     [manager setSessionDidReceiveAuthenticationChallengeBlock:^NSURLSessionAuthChallengeDisposition(NSURLSession * _Nonnull session, NSURLAuthenticationChallenge * _Nonnull challenge, NSURLCredential *__autoreleasing  _Nullable * _Nullable credential) {
@@ -188,7 +192,11 @@ static AFNetworkReachabilityStatus g_reachableState = AFNetworkReachabilityStatu
     
     AFHTTPSessionManager *manager=[AFHTTPSessionManager manager];
     
-    manager.requestSerializer = [AFHTTPRequestSerializer serializer];
+    if (body[@"isJsonRequest"] && [body[@"isJsonRequest"] boolValue]) {
+        manager.requestSerializer = [AFJSONRequestSerializer serializer];
+    } else {
+        manager.requestSerializer = [AFHTTPRequestSerializer serializer];
+    }
     manager.responseSerializer = [AFJSONResponseSerializer serializer];
     [manager.requestSerializer setTimeoutInterval:REQUEST_TIMEOUT];
     [manager setSessionDidReceiveAuthenticationChallengeBlock:^NSURLSessionAuthChallengeDisposition(NSURLSession * _Nonnull session, NSURLAuthenticationChallenge * _Nonnull challenge, NSURLCredential *__autoreleasing  _Nullable * _Nullable credential) {
@@ -242,7 +250,11 @@ static AFNetworkReachabilityStatus g_reachableState = AFNetworkReachabilityStatu
     
     AFHTTPSessionManager *manager=[AFHTTPSessionManager manager];
     
-    manager.requestSerializer = [AFHTTPRequestSerializer serializer];
+    if (body[@"isJsonRequest"] && [body[@"isJsonRequest"] boolValue]) {
+        manager.requestSerializer = [AFJSONRequestSerializer serializer];
+    } else {
+        manager.requestSerializer = [AFHTTPRequestSerializer serializer];
+    }
     manager.responseSerializer = [AFJSONResponseSerializer serializer];
     [manager.requestSerializer setTimeoutInterval:REQUEST_TIMEOUT];
     [manager setSessionDidReceiveAuthenticationChallengeBlock:^NSURLSessionAuthChallengeDisposition(NSURLSession * _Nonnull session, NSURLAuthenticationChallenge * _Nonnull challenge, NSURLCredential *__autoreleasing  _Nullable * _Nullable credential) {
