@@ -19,6 +19,8 @@ static NSString *const kNoticGetNetwork         = @"NoticGetNetwork";
 /// 失去网络通知
 static NSString *const kNoticLoseNetwork        = @"NoticLoseNetwork";
 
+/// 错误域
+static NSString *const kErrorDomain             = @"WebService";
 
 #define sNetworkOffNet              -10000
 // 相关提示文字

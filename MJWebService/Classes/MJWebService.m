@@ -64,7 +64,12 @@ static AFNetworkReachabilityStatus g_reachableState = AFNetworkReachabilityStatu
 {
     [self dataInit];
     if (g_reachableState == AFNetworkReachabilityStatusNotReachable) {
-        NSError *err = [[NSError alloc] initWithDomain:sNetworkErrorMsg code:sNetworkOffNet userInfo:nil];
+        NSError *err = [[NSError alloc] initWithDomain:kErrorDomain
+                                                  code:sNetworkOffNet
+                                              userInfo:@{
+                                                         NSLocalizedDescriptionKey:sNetworkErrorMsg,
+                                                         NSLocalizedFailureReasonErrorKey:sNetworkErrorMsg
+                                                         }];
         if (fblock) {
             fblock(err);
         }
@@ -120,7 +125,12 @@ static AFNetworkReachabilityStatus g_reachableState = AFNetworkReachabilityStatu
 {
     [self dataInit];
     if (g_reachableState == AFNetworkReachabilityStatusNotReachable) {
-        NSError *err = [[NSError alloc] initWithDomain:sNetworkErrorMsg code:sNetworkOffNet userInfo:nil];
+        NSError *err = [[NSError alloc] initWithDomain:kErrorDomain
+                                                  code:sNetworkOffNet
+                                              userInfo:@{
+                                                         NSLocalizedDescriptionKey:sNetworkErrorMsg,
+                                                         NSLocalizedFailureReasonErrorKey:sNetworkErrorMsg
+                                                         }];
         if (fblock) {
             fblock(err);
         }
@@ -178,7 +188,12 @@ static AFNetworkReachabilityStatus g_reachableState = AFNetworkReachabilityStatu
 {
     [self dataInit];
     if (g_reachableState == AFNetworkReachabilityStatusNotReachable) {
-        NSError *err = [[NSError alloc] initWithDomain:sNetworkErrorMsg code:sNetworkOffNet userInfo:nil];
+        NSError *err = [[NSError alloc] initWithDomain:kErrorDomain
+                                                  code:sNetworkOffNet
+                                              userInfo:@{
+                                                         NSLocalizedDescriptionKey:sNetworkErrorMsg,
+                                                         NSLocalizedFailureReasonErrorKey:sNetworkErrorMsg
+                                                         }];
         if (fblock) {
             fblock(err);
         }
@@ -236,7 +251,12 @@ static AFNetworkReachabilityStatus g_reachableState = AFNetworkReachabilityStatu
 {
     [self dataInit];
     if (g_reachableState == AFNetworkReachabilityStatusNotReachable) {
-        NSError *err = [[NSError alloc] initWithDomain:sNetworkErrorMsg code:sNetworkOffNet userInfo:nil];
+        NSError *err = [[NSError alloc] initWithDomain:kErrorDomain
+                                                  code:sNetworkOffNet
+                                              userInfo:@{
+                                                         NSLocalizedDescriptionKey:sNetworkErrorMsg,
+                                                         NSLocalizedFailureReasonErrorKey:sNetworkErrorMsg
+                                                         }];
         if (fblock) {
             fblock(err);
         }
@@ -295,7 +315,12 @@ static AFNetworkReachabilityStatus g_reachableState = AFNetworkReachabilityStatu
 {
     [self dataInit];
     if (g_reachableState == AFNetworkReachabilityStatusNotReachable) {
-        NSError *err = [[NSError alloc] initWithDomain:sNetworkErrorMsg code:sNetworkOffNet userInfo:nil];
+        NSError *err = [[NSError alloc] initWithDomain:kErrorDomain
+                                                  code:sNetworkOffNet
+                                              userInfo:@{
+                                                         NSLocalizedDescriptionKey:sNetworkErrorMsg,
+                                                         NSLocalizedFailureReasonErrorKey:sNetworkErrorMsg
+                                                         }];
         if (fblock) {
             fblock(err);
         }
