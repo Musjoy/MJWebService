@@ -77,7 +77,7 @@ static AFNetworkReachabilityStatus g_reachableState = AFNetworkReachabilityStatu
     }
     
     // 拼接请求url
-    NSString *pathUrl = serverUrl;
+    NSString *pathUrl = [serverUrl stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]];
     LogTrace(@"...>>>...requestUrl:%@\n", pathUrl);
     LogInfo(@"...>>>...requestBody:%@\n", body);
     
@@ -242,7 +242,7 @@ static AFNetworkReachabilityStatus g_reachableState = AFNetworkReachabilityStatu
     return YES;
 }
 
-#pragma mark - 发起Put请求
+#pragma mark - 发起Delete请求
 
 + (BOOL)startDelete:(NSString *)serverUrl
                body:(NSDictionary *)body
@@ -305,6 +305,8 @@ static AFNetworkReachabilityStatus g_reachableState = AFNetworkReachabilityStatu
     return YES;
 }
 
+
+#pragma mark - 发起Upload请求
 
 /** 多文件上传 */
 + (BOOL)startUploadFiles:(NSString *)serverUrl
@@ -383,6 +385,7 @@ static AFNetworkReachabilityStatus g_reachableState = AFNetworkReachabilityStatu
 }
 
 
+#pragma mark - 发起Download请求
 
 /** 单个文件下载 */
 + (void)startDownload:(NSString *)remotePath
@@ -467,8 +470,6 @@ static AFNetworkReachabilityStatus g_reachableState = AFNetworkReachabilityStatu
     }];
     [downloadTask resume];
 }
-
-
 
 
 
