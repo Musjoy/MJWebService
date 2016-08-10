@@ -79,7 +79,7 @@ static AFNetworkReachabilityStatus g_reachableState = AFNetworkReachabilityStatu
     // 拼接请求url
     NSString *pathUrl = [serverUrl stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]];
     LogTrace(@"...>>>...requestUrl:%@\n", pathUrl);
-    LogInfo(@"...>>>...requestBody:%@\n", body);
+    LogDebug(@"...>>>...requestBody:%@\n", body);
     
     AFHTTPSessionManager *manager=[AFHTTPSessionManager manager];
     
@@ -101,7 +101,7 @@ static AFNetworkReachabilityStatus g_reachableState = AFNetworkReachabilityStatu
     
     [manager GET:pathUrl parameters:body progress:nil success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
         // 请求成功
-        LogInfo(@"...>>>...receiveData = %@", responseObject);
+        LogDebug(@"...>>>...receiveData = %@", responseObject);
         if (sblock) {
             sblock(responseObject);
         }
@@ -140,7 +140,7 @@ static AFNetworkReachabilityStatus g_reachableState = AFNetworkReachabilityStatu
     // 拼接请求url
     NSString *pathUrl = serverUrl;
     LogTrace(@"...>>>...requestUrl:%@\n", pathUrl);
-    LogInfo(@"...>>>...requestBody:%@\n", body);
+    LogDebug(@"...>>>...requestBody:%@\n", body);
     
     AFHTTPSessionManager *manager=[AFHTTPSessionManager manager];
     
@@ -164,7 +164,7 @@ static AFNetworkReachabilityStatus g_reachableState = AFNetworkReachabilityStatu
     
     [manager POST:pathUrl parameters:body progress:nil success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
         // 请求成功
-        LogInfo(@"...>>>...receiveData = %@", responseObject);
+        LogDebug(@"...>>>...receiveData = %@", responseObject);
         if (sblock) {
             sblock(responseObject);
         }
@@ -203,7 +203,7 @@ static AFNetworkReachabilityStatus g_reachableState = AFNetworkReachabilityStatu
     // 拼接请求url
     NSString *pathUrl = serverUrl;
     LogTrace(@"...>>>...requestUrl:%@\n", pathUrl);
-    LogInfo(@"...>>>...requestBody:%@\n", body);
+    LogDebug(@"...>>>...requestBody:%@\n", body);
     
     AFHTTPSessionManager *manager=[AFHTTPSessionManager manager];
     
@@ -227,7 +227,7 @@ static AFNetworkReachabilityStatus g_reachableState = AFNetworkReachabilityStatu
     
     [manager PUT:pathUrl parameters:body success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
         // 请求成功
-        LogInfo(@"...>>>...receiveData = %@", responseObject);
+        LogDebug(@"...>>>...receiveData = %@", responseObject);
         if (sblock) {
             sblock(responseObject);
         }
@@ -266,7 +266,7 @@ static AFNetworkReachabilityStatus g_reachableState = AFNetworkReachabilityStatu
     // 拼接请求url
     NSString *pathUrl = serverUrl;
     LogTrace(@"...>>>...requestUrl:%@\n", pathUrl);
-    LogInfo(@"...>>>...requestBody:%@\n", body);
+    LogDebug(@"...>>>...requestBody:%@\n", body);
     
     AFHTTPSessionManager *manager=[AFHTTPSessionManager manager];
     
@@ -290,7 +290,7 @@ static AFNetworkReachabilityStatus g_reachableState = AFNetworkReachabilityStatu
     
     [manager DELETE:pathUrl parameters:body success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
         // 请求成功
-        LogInfo(@"...>>>...receiveData = %@", responseObject);
+        LogDebug(@"...>>>...receiveData = %@", responseObject);
         if (sblock) {
             sblock(responseObject);
         }
@@ -332,7 +332,7 @@ static AFNetworkReachabilityStatus g_reachableState = AFNetworkReachabilityStatu
     // 拼接请求url
     NSString *pathUrl = serverUrl;
     LogTrace(@"...>>>...requestUrl:%@\n", pathUrl);
-    LogInfo(@"...>>>...requestData:%@\n", body);
+    LogDebug(@"...>>>...requestData:%@\n", body);
     
     AFHTTPSessionManager *manager=[AFHTTPSessionManager manager];
     
@@ -370,7 +370,7 @@ static AFNetworkReachabilityStatus g_reachableState = AFNetworkReachabilityStatu
         
     } success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
         // 请求成功
-        LogInfo(@"...>>>...receiveData = %@", responseObject);
+        LogDebug(@"...>>>...receiveData = %@", responseObject);
         if (sblock) {
             sblock(responseObject);
         }
