@@ -108,7 +108,7 @@ static AFNetworkReachabilityStatus g_reachableState = AFNetworkReachabilityStatu
         
     } failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
         // 请求失败
-        LogError(@"...>>>...Network error: %@\n", task.response);
+        LogError(@"...>>>...Network error: %@\n", error);
         if (fblock) {
             fblock(error);
         }
@@ -376,7 +376,7 @@ static AFNetworkReachabilityStatus g_reachableState = AFNetworkReachabilityStatu
         }
     } failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
         // 请求失败
-        LogError(@"...>>>...Network error: %@\n", task.response);
+        LogError(@"...>>>...Network error: %@\n", error);
         if (fblock) {
             fblock(error);
         }
