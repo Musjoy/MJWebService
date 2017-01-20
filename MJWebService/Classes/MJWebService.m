@@ -116,6 +116,62 @@ static AFNetworkReachabilityStatus g_reachableState = AFNetworkReachabilityStatu
     return YES;
 }
 
++ (BOOL)startGetText:(NSString *)serverUrl
+                body:(NSDictionary *)body
+             success:(RequestSuccessBlock)sblock
+             failure:(RequestFailureBlock)fblock
+{
+    [self dataInit];
+    if (g_reachableState == AFNetworkReachabilityStatusNotReachable) {
+        NSError *err = [[NSError alloc] initWithDomain:kErrorDomain
+                                                  code:sNetworkOffNet
+                                              userInfo:@{
+                                                         NSLocalizedDescriptionKey:sNetworkErrorMsg,
+                                                         NSLocalizedFailureReasonErrorKey:sNetworkErrorMsg
+                                                         }];
+        if (fblock) {
+            fblock(err);
+        }
+        return NO;
+    }
+    
+    // 拼接请求url
+    NSString *pathUrl = [serverUrl stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]];
+    LogTrace(@"...>>>...requestUrl:%@\n", pathUrl);
+    LogDebug(@"...>>>...requestBody:%@\n", body);
+    
+    AFHTTPSessionManager *manager=[AFHTTPSessionManager manager];
+    
+    manager.requestSerializer = [AFHTTPRequestSerializer serializer];
+    manager.responseSerializer = [AFHTTPResponseSerializer serializer];
+    [manager.requestSerializer setTimeoutInterval:REQUEST_TIMEOUT];
+    
+    // 信任无效证实
+    [manager setSessionDidReceiveAuthenticationChallengeBlock:^NSURLSessionAuthChallengeDisposition(NSURLSession * _Nonnull session, NSURLAuthenticationChallenge * _Nonnull challenge, NSURLCredential *__autoreleasing  _Nullable * _Nullable credential) {
+        *credential = [NSURLCredential credentialForTrust:challenge.protectionSpace.serverTrust];
+        return NSURLSessionAuthChallengeUseCredential;
+    }];
+    
+    [manager GET:pathUrl parameters:body progress:nil success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
+        // 请求成功
+        if (responseObject && [responseObject isKindOfClass:[NSData class]]) {
+            responseObject = [[NSString alloc] initWithData:responseObject encoding:NSUTF8StringEncoding];
+        }
+        LogDebug(@"...>>>...receiveData = %@", responseObject);
+        if (sblock) {
+            sblock(responseObject);
+        }
+        
+    } failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
+        // 请求失败
+        LogError(@"...>>>...Network error: %@\n", error);
+        if (fblock) {
+            fblock(error);
+        }
+    }];
+    return YES;
+}
+
 #pragma mark - 发起POST请求
 
 + (BOOL)startPost:(NSString *)serverUrl

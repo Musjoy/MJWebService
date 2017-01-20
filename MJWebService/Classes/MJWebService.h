@@ -46,6 +46,11 @@ typedef void (^RequestFailureBlock)(NSError *error);
          success:(RequestSuccessBlock)sblock
          failure:(RequestFailureBlock)fblock;
 
++ (BOOL)startGetText:(NSString *)serverUrl
+                body:(NSDictionary *)body
+             success:(RequestSuccessBlock)sblock
+             failure:(RequestFailureBlock)fblock;
+
 /**
  *	@brief	post请求接口
  *
