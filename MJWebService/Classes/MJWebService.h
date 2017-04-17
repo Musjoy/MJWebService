@@ -56,7 +56,6 @@ typedef void (^RequestFailureBlock)(NSError *error);
  *
  *	@param 	serverUrl       接口服务地址
  *	@param 	body            请求的body数据
- *	@param 	returnClass 	就收返回数据的model
  *	@param 	sblock          请求成功回调
  *	@param 	fblock          请求失败回调
  *
@@ -82,7 +81,6 @@ typedef void (^RequestFailureBlock)(NSError *error);
  *	@param 	serverUrl       接口服务地址
  *	@param 	body            请求body数据
  *	@param 	files           请求文件列表，eg：@[@"本地文件全路径", @"本地文件全路径"]
- *	@param 	returnClass 	接收返回数据的model
  *	@param 	sblock          成功回调
  *	@param 	fblock          失败回调
  *
@@ -101,8 +99,6 @@ typedef void (^RequestFailureBlock)(NSError *error);
  *	@param 	localPath       下载文件的本地保存路径
  *	@param 	completion      请求完成的回调
  *	@param 	progressBlock 	下载进度回调: bytesRead-已读子节; totalBytesRead-总字节; totalBytesExpectedToRead-未读子节
- *
- *	@return	void
  */
 + (void)startDownload:(NSString *)remotePath
          withSavePath:(NSString *)localPath
