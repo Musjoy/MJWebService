@@ -7,9 +7,6 @@
 //  网络请求类<MODULE_WEB_SERVICE>
 
 #import <Foundation/Foundation.h>
-#import "AFHTTPSessionManager.h"
-#import "AFNetworkReachabilityManager.h"
-
 
 // 通知
 /// 网络状态变化通知
@@ -20,13 +17,20 @@ static NSString *const kNoticGetNetwork         = @"NoticGetNetwork";
 static NSString *const kNoticLoseNetwork        = @"NoticLoseNetwork";
 
 /// 错误域
-static NSString *const kErrorDomain             = @"WebService";
+static NSString *const kErrorDomainWebService   = @"WebService";
 
 #define sNetworkOffNet              -10000
 // 相关提示文字
 #define sNetworkUnreachMsg          @"Network Unreachable"
 #define sNetworkErrorMsg            @"Network Error"
 
+
+typedef NS_ENUM(NSInteger, MJReachabilityStatus) {
+    MJReachabilityStatusUnknown          = -1,
+    MJReachabilityStatusNotReachable     = 0,
+    MJReachabilityStatusReachableViaWWAN = 1,
+    MJReachabilityStatusReachableViaWiFi = 2,
+};
 
 
 //操作成功（网络请求成功，返回值Success = true,两个条件同时成立，才会回调该方法）
@@ -39,7 +43,7 @@ typedef void (^RequestFailureBlock)(NSError *error);
 
 + (void)dataInit;
 
-+ (AFNetworkReachabilityStatus)reachableState;
++ (MJReachabilityStatus)reachableState;
 
 + (BOOL)startGet:(NSString *)serverUrl
             body:(NSDictionary *)body
@@ -97,12 +101,12 @@ typedef void (^RequestFailureBlock)(NSError *error);
  *
  *	@param 	remotePath      下载文件的远程路径
  *	@param 	localPath       下载文件的本地保存路径
- *	@param 	completion      请求完成的回调
+ *	@param 	completion      请求完成的回调, respondOrErr: 成功是为NSURLResponse，失败为NSError或nil
  *	@param 	progressBlock 	下载进度回调: bytesRead-已读子节; totalBytesRead-总字节; totalBytesExpectedToRead-未读子节
  */
 + (void)startDownload:(NSString *)remotePath
          withSavePath:(NSString *)localPath
-           completion:(void (^)(BOOL isSucceed, NSString *message))completion
+           completion:(void (^)(BOOL isSucceed, NSString *message, id responseOrErr))completion
         progressBlock:(void (^)(NSUInteger bytesRead, long long totalBytesRead, long long totalBytesExpectedToRead))progressBlock;
 
 

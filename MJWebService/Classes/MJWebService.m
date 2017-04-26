@@ -7,17 +7,17 @@
 //
 
 #import "MJWebService.h"
-
+#import "AFHTTPSessionManager.h"
+#import "AFNetworkReachabilityManager.h"
 
 #define REQUEST_TIMEOUT 30
 #define UPLOAD_TIMEOUT 120
 #define DOWNLOAD_TIMEOUT 60
 
 
-
 static AFNetworkReachabilityManager *s_hostReach = nil;
 
-static AFNetworkReachabilityStatus g_reachableState = AFNetworkReachabilityStatusUnknown;
+static MJReachabilityStatus g_reachableState = MJReachabilityStatusUnknown;
 
 
 @interface MJWebService ()
@@ -32,11 +32,11 @@ static AFNetworkReachabilityStatus g_reachableState = AFNetworkReachabilityStatu
 {
     if (s_hostReach == nil) {
         // 开启网络监听
-        g_reachableState = AFNetworkReachabilityStatusUnknown;
+        g_reachableState = MJReachabilityStatusUnknown;
         s_hostReach = [AFNetworkReachabilityManager sharedManager];
         [s_hostReach setReachabilityStatusChangeBlock:^(AFNetworkReachabilityStatus status) {
             LogTrace(@"Reachability changed to [%@]!", AFStringFromNetworkReachabilityStatus(status));
-            g_reachableState = status;
+            g_reachableState = (MJReachabilityStatus)status;
             [[NSNotificationCenter defaultCenter] postNotificationName:kNoticReachabilityChange object:[NSNumber numberWithInteger:g_reachableState]];
             if (g_reachableState == AFNetworkReachabilityStatusNotReachable) {
                 [[NSNotificationCenter defaultCenter] postNotificationName:kNoticLoseNetwork object:[NSNumber numberWithInteger:g_reachableState]];
@@ -45,11 +45,11 @@ static AFNetworkReachabilityStatus g_reachableState = AFNetworkReachabilityStatu
             }
         }];
         [s_hostReach startMonitoring];  //开始监听，会启动一个run loop
-        g_reachableState = s_hostReach.networkReachabilityStatus;
+        g_reachableState = (MJReachabilityStatus)s_hostReach.networkReachabilityStatus;
     }
 }
 
-+ (AFNetworkReachabilityStatus)reachableState
++ (MJReachabilityStatus)reachableState
 {
     return g_reachableState;
 }
@@ -64,7 +64,7 @@ static AFNetworkReachabilityStatus g_reachableState = AFNetworkReachabilityStatu
 {
     [self dataInit];
     if (g_reachableState == AFNetworkReachabilityStatusNotReachable) {
-        NSError *err = [[NSError alloc] initWithDomain:kErrorDomain
+        NSError *err = [[NSError alloc] initWithDomain:kErrorDomainWebService
                                                   code:sNetworkOffNet
                                               userInfo:@{
                                                          NSLocalizedDescriptionKey:sNetworkErrorMsg,
@@ -78,8 +78,8 @@ static AFNetworkReachabilityStatus g_reachableState = AFNetworkReachabilityStatu
     
     // 拼接请求url
     NSString *pathUrl = [serverUrl stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]];
-    LogTrace(@"...>>>...requestUrl:%@\n", pathUrl);
-    LogDebug(@"...>>>...requestBody:%@\n", body);
+    LogTrace(@"...>>>...requestUrl: %@\n", pathUrl);
+    LogDebug(@"...>>>...requestBody: %@\n", body);
     
     AFHTTPSessionManager *manager=[AFHTTPSessionManager manager];
     
@@ -108,7 +108,7 @@ static AFNetworkReachabilityStatus g_reachableState = AFNetworkReachabilityStatu
         
     } failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
         // 请求失败
-        LogError(@"...>>>...Network error: %@\n", error);
+        LogError(@"...>>>...Network error: %@ %@\n", serverUrl, error.localizedDescription);
         if (fblock) {
             fblock(error);
         }
@@ -123,7 +123,7 @@ static AFNetworkReachabilityStatus g_reachableState = AFNetworkReachabilityStatu
 {
     [self dataInit];
     if (g_reachableState == AFNetworkReachabilityStatusNotReachable) {
-        NSError *err = [[NSError alloc] initWithDomain:kErrorDomain
+        NSError *err = [[NSError alloc] initWithDomain:kErrorDomainWebService
                                                   code:sNetworkOffNet
                                               userInfo:@{
                                                          NSLocalizedDescriptionKey:sNetworkErrorMsg,
@@ -137,8 +137,8 @@ static AFNetworkReachabilityStatus g_reachableState = AFNetworkReachabilityStatu
     
     // 拼接请求url
     NSString *pathUrl = [serverUrl stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]];
-    LogTrace(@"...>>>...requestUrl:%@\n", pathUrl);
-    LogDebug(@"...>>>...requestBody:%@\n", body);
+    LogTrace(@"...>>>...requestUrl: %@\n", pathUrl);
+    LogDebug(@"...>>>...requestBody: %@\n", body);
     
     AFHTTPSessionManager *manager=[AFHTTPSessionManager manager];
     
@@ -164,7 +164,7 @@ static AFNetworkReachabilityStatus g_reachableState = AFNetworkReachabilityStatu
         
     } failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
         // 请求失败
-        LogError(@"...>>>...Network error: %@\n", error);
+        LogError(@"...>>>...Network error: %@ %@\n", serverUrl, error.localizedDescription);
         if (fblock) {
             fblock(error);
         }
@@ -181,7 +181,7 @@ static AFNetworkReachabilityStatus g_reachableState = AFNetworkReachabilityStatu
 {
     [self dataInit];
     if (g_reachableState == AFNetworkReachabilityStatusNotReachable) {
-        NSError *err = [[NSError alloc] initWithDomain:kErrorDomain
+        NSError *err = [[NSError alloc] initWithDomain:kErrorDomainWebService
                                                   code:sNetworkOffNet
                                               userInfo:@{
                                                          NSLocalizedDescriptionKey:sNetworkErrorMsg,
@@ -195,8 +195,8 @@ static AFNetworkReachabilityStatus g_reachableState = AFNetworkReachabilityStatu
     
     // 拼接请求url
     NSString *pathUrl = serverUrl;
-    LogTrace(@"...>>>...requestUrl:%@\n", pathUrl);
-    LogDebug(@"...>>>...requestBody:%@\n", body);
+    LogTrace(@"...>>>...requestUrl: %@\n", pathUrl);
+    LogDebug(@"...>>>...requestBody: %@\n", body);
     
     AFHTTPSessionManager *manager=[AFHTTPSessionManager manager];
     
@@ -227,7 +227,7 @@ static AFNetworkReachabilityStatus g_reachableState = AFNetworkReachabilityStatu
         
     } failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
         // 请求失败
-        LogError(@"...>>>...Network error: %@\n", error);
+        LogError(@"...>>>...Network error: %@ %@\n", serverUrl, error.localizedDescription);
         if (fblock) {
             fblock(error);
         }
@@ -244,7 +244,7 @@ static AFNetworkReachabilityStatus g_reachableState = AFNetworkReachabilityStatu
 {
     [self dataInit];
     if (g_reachableState == AFNetworkReachabilityStatusNotReachable) {
-        NSError *err = [[NSError alloc] initWithDomain:kErrorDomain
+        NSError *err = [[NSError alloc] initWithDomain:kErrorDomainWebService
                                                   code:sNetworkOffNet
                                               userInfo:@{
                                                          NSLocalizedDescriptionKey:sNetworkErrorMsg,
@@ -258,8 +258,8 @@ static AFNetworkReachabilityStatus g_reachableState = AFNetworkReachabilityStatu
     
     // 拼接请求url
     NSString *pathUrl = serverUrl;
-    LogTrace(@"...>>>...requestUrl:%@\n", pathUrl);
-    LogDebug(@"...>>>...requestBody:%@\n", body);
+    LogTrace(@"...>>>...requestUrl: %@\n", pathUrl);
+    LogDebug(@"...>>>...requestBody: %@\n", body);
     
     AFHTTPSessionManager *manager=[AFHTTPSessionManager manager];
     
@@ -290,7 +290,7 @@ static AFNetworkReachabilityStatus g_reachableState = AFNetworkReachabilityStatu
         
     } failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
         // 请求失败
-        LogError(@"...>>>...Network error: %@\n", error);
+        LogError(@"...>>>...Network error: %@ %@\n", serverUrl, error.localizedDescription);
         if (fblock) {
             fblock(error);
         }
@@ -307,7 +307,7 @@ static AFNetworkReachabilityStatus g_reachableState = AFNetworkReachabilityStatu
 {
     [self dataInit];
     if (g_reachableState == AFNetworkReachabilityStatusNotReachable) {
-        NSError *err = [[NSError alloc] initWithDomain:kErrorDomain
+        NSError *err = [[NSError alloc] initWithDomain:kErrorDomainWebService
                                                   code:sNetworkOffNet
                                               userInfo:@{
                                                          NSLocalizedDescriptionKey:sNetworkErrorMsg,
@@ -321,8 +321,8 @@ static AFNetworkReachabilityStatus g_reachableState = AFNetworkReachabilityStatu
     
     // 拼接请求url
     NSString *pathUrl = serverUrl;
-    LogTrace(@"...>>>...requestUrl:%@\n", pathUrl);
-    LogDebug(@"...>>>...requestBody:%@\n", body);
+    LogTrace(@"...>>>...requestUrl: %@\n", pathUrl);
+    LogDebug(@"...>>>...requestBody: %@\n", body);
     
     AFHTTPSessionManager *manager=[AFHTTPSessionManager manager];
     
@@ -353,7 +353,7 @@ static AFNetworkReachabilityStatus g_reachableState = AFNetworkReachabilityStatu
         
     } failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
         // 请求失败
-        LogError(@"...>>>...Network error: %@\n", error);
+        LogError(@"...>>>...Network error: %@ %@\n", serverUrl, error.localizedDescription);
         if (fblock) {
             fblock(error);
         }
@@ -373,7 +373,7 @@ static AFNetworkReachabilityStatus g_reachableState = AFNetworkReachabilityStatu
 {
     [self dataInit];
     if (g_reachableState == AFNetworkReachabilityStatusNotReachable) {
-        NSError *err = [[NSError alloc] initWithDomain:kErrorDomain
+        NSError *err = [[NSError alloc] initWithDomain:kErrorDomainWebService
                                                   code:sNetworkOffNet
                                               userInfo:@{
                                                          NSLocalizedDescriptionKey:sNetworkErrorMsg,
@@ -387,8 +387,8 @@ static AFNetworkReachabilityStatus g_reachableState = AFNetworkReachabilityStatu
     
     // 拼接请求url
     NSString *pathUrl = serverUrl;
-    LogTrace(@"...>>>...requestUrl:%@\n", pathUrl);
-    LogDebug(@"...>>>...requestData:%@\n", body);
+    LogTrace(@"...>>>...requestUrl: %@\n", pathUrl);
+    LogDebug(@"...>>>...requestData: %@\n", body);
     
     AFHTTPSessionManager *manager=[AFHTTPSessionManager manager];
     
@@ -432,7 +432,7 @@ static AFNetworkReachabilityStatus g_reachableState = AFNetworkReachabilityStatu
         }
     } failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
         // 请求失败
-        LogError(@"...>>>...Network error: %@\n", error);
+        LogError(@"...>>>...Network error: %@ %@\n", serverUrl, error.localizedDescription);
         if (fblock) {
             fblock(error);
         }
@@ -446,20 +446,16 @@ static AFNetworkReachabilityStatus g_reachableState = AFNetworkReachabilityStatu
 /** 单个文件下载 */
 + (void)startDownload:(NSString *)remotePath
          withSavePath:(NSString *)localPath
-           completion:(void (^)(BOOL isSucceed, NSString *message))completion
+           completion:(void (^)(BOOL, NSString *, id))completion
         progressBlock:(void (^)(NSUInteger bytesRead, long long totalBytesRead, long long totalBytesExpectedToRead))progressBlock
 {
     [self dataInit];
     if (g_reachableState == AFNetworkReachabilityStatusNotReachable) {
-        if (completion) {
-            completion(NO, sNetworkErrorMsg);
-        }
+        completion ? completion(NO, sNetworkErrorMsg, nil) : nil;
         return;
     }
     
-    if (completion == nil) {
-        completion = ^(BOOL isSucceed, NSString *message) {};
-    }
+    LogTrace(@"...>>>...Start download file : %@\n", remotePath);
     
     NSString *remoteFilePath = remotePath;
     NSURLRequest *request = [NSURLRequest requestWithURL:[NSURL URLWithString:remoteFilePath]
@@ -483,9 +479,9 @@ static AFNetworkReachabilityStatus g_reachableState = AFNetworkReachabilityStatu
     }];
     
     NSURLSessionDownloadTask *downloadTask = [manager downloadTaskWithRequest:request progress:^(NSProgress * _Nonnull downloadProgress) {
-        //下载进度
+        // 下载进度
         float progress = (float)downloadProgress.completedUnitCount / downloadProgress.totalUnitCount;
-        //下载完成...该方法会在下载完成后立即执行
+        // 下载完成...该方法会在下载完成后立即执行
         if (progress >= 1.0) {
             LogInfo(@"下载完成...");
         }
@@ -497,17 +493,17 @@ static AFNetworkReachabilityStatus g_reachableState = AFNetworkReachabilityStatu
     } completionHandler:^(NSURLResponse * _Nonnull response, NSURL * _Nullable filePath, NSError * _Nullable error) {
         if (error) {
             // 下载失败
-            LogError(@"...>>>...Network error: %@\n", error);
+            LogError(@"...>>>...Network error: %@ %@\n", remotePath, error.localizedDescription);
             dispatch_async(dispatch_get_main_queue(), ^{
                 NSFileManager *fileManager = [NSFileManager defaultManager];
                 NSError *err = nil;
                 if ([fileManager fileExistsAtPath:filePathTemp]) {
                     [fileManager removeItemAtPath:filePathTemp error:&err];
                 }
-                completion(NO, @"Download failed!");
+                completion ? completion(NO, @"Download failed!", error) : nil;
             });
         } else {
-            LogInfo(@"...>>>...Successfully downloaded file to %@\n", localPath);
+            LogInfo(@"...>>>...Successfully downloaded file\n\t %@\n\tto %@\n", remotePath, localPath);
             dispatch_async(dispatch_get_main_queue(), ^{
                 if (completion) {
                     NSFileManager *fileManager = [NSFileManager defaultManager];
@@ -519,7 +515,7 @@ static AFNetworkReachabilityStatus g_reachableState = AFNetworkReachabilityStatu
                         [fileManager moveItemAtPath:filePathTemp toPath:localPath error:&err];
                     }
                     
-                    completion(YES, @"Download succeed!");
+                    completion ? completion(YES, @"Download succeed!", response) : nil;
                 }
             });
         }
