@@ -32,6 +32,9 @@ typedef NS_ENUM(NSInteger, MJReachabilityStatus) {
     MJReachabilityStatusReachableViaWiFi = 2,
 };
 
+/// Returns a localized string representation of an `MJReachabilityStatus` value.
+FOUNDATION_EXPORT NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status);
+
 
 //操作成功（网络请求成功，返回值Success = true,两个条件同时成立，才会回调该方法）
 typedef void (^RequestSuccessBlock)(id respond);

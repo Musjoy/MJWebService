@@ -9,6 +9,7 @@
 #import "MJWebService.h"
 #import "AFHTTPSessionManager.h"
 #import "AFNetworkReachabilityManager.h"
+#import HEADER_LOCALIZE
 
 #define REQUEST_TIMEOUT 30
 #define UPLOAD_TIMEOUT 120
@@ -18,6 +19,21 @@
 static AFNetworkReachabilityManager *s_hostReach = nil;
 
 static MJReachabilityStatus g_reachableState = MJReachabilityStatusUnknown;
+
+
+NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
+    switch (status) {
+        case MJReachabilityStatusNotReachable:
+            return locString(@"Not Reachable");
+        case MJReachabilityStatusReachableViaWWAN:
+            return locString(@"Reachable via WWAN");
+        case MJReachabilityStatusReachableViaWiFi:
+            return locString(@"Reachable via WiFi");
+        case MJReachabilityStatusUnknown:
+        default:
+            return locString(@"Unknown");
+    }
+}
 
 
 @interface MJWebService ()
@@ -67,8 +83,8 @@ static MJReachabilityStatus g_reachableState = MJReachabilityStatusUnknown;
         NSError *err = [[NSError alloc] initWithDomain:kErrorDomainWebService
                                                   code:sNetworkOffNet
                                               userInfo:@{
-                                                         NSLocalizedDescriptionKey:sNetworkErrorMsg,
-                                                         NSLocalizedFailureReasonErrorKey:sNetworkErrorMsg
+                                                         NSLocalizedDescriptionKey:locString(sNetworkErrorMsg),
+                                                         NSLocalizedFailureReasonErrorKey:locString(sNetworkErrorMsg)
                                                          }];
         if (fblock) {
             fblock(err);
@@ -126,8 +142,8 @@ static MJReachabilityStatus g_reachableState = MJReachabilityStatusUnknown;
         NSError *err = [[NSError alloc] initWithDomain:kErrorDomainWebService
                                                   code:sNetworkOffNet
                                               userInfo:@{
-                                                         NSLocalizedDescriptionKey:sNetworkErrorMsg,
-                                                         NSLocalizedFailureReasonErrorKey:sNetworkErrorMsg
+                                                         NSLocalizedDescriptionKey:locString(sNetworkErrorMsg),
+                                                         NSLocalizedFailureReasonErrorKey:locString(sNetworkErrorMsg)
                                                          }];
         if (fblock) {
             fblock(err);
@@ -184,8 +200,8 @@ static MJReachabilityStatus g_reachableState = MJReachabilityStatusUnknown;
         NSError *err = [[NSError alloc] initWithDomain:kErrorDomainWebService
                                                   code:sNetworkOffNet
                                               userInfo:@{
-                                                         NSLocalizedDescriptionKey:sNetworkErrorMsg,
-                                                         NSLocalizedFailureReasonErrorKey:sNetworkErrorMsg
+                                                         NSLocalizedDescriptionKey:locString(sNetworkErrorMsg),
+                                                         NSLocalizedFailureReasonErrorKey:locString(sNetworkErrorMsg)
                                                          }];
         if (fblock) {
             fblock(err);
@@ -247,8 +263,8 @@ static MJReachabilityStatus g_reachableState = MJReachabilityStatusUnknown;
         NSError *err = [[NSError alloc] initWithDomain:kErrorDomainWebService
                                                   code:sNetworkOffNet
                                               userInfo:@{
-                                                         NSLocalizedDescriptionKey:sNetworkErrorMsg,
-                                                         NSLocalizedFailureReasonErrorKey:sNetworkErrorMsg
+                                                         NSLocalizedDescriptionKey:locString(sNetworkErrorMsg),
+                                                         NSLocalizedFailureReasonErrorKey:locString(sNetworkErrorMsg)
                                                          }];
         if (fblock) {
             fblock(err);
@@ -310,8 +326,8 @@ static MJReachabilityStatus g_reachableState = MJReachabilityStatusUnknown;
         NSError *err = [[NSError alloc] initWithDomain:kErrorDomainWebService
                                                   code:sNetworkOffNet
                                               userInfo:@{
-                                                         NSLocalizedDescriptionKey:sNetworkErrorMsg,
-                                                         NSLocalizedFailureReasonErrorKey:sNetworkErrorMsg
+                                                         NSLocalizedDescriptionKey:locString(sNetworkErrorMsg),
+                                                         NSLocalizedFailureReasonErrorKey:locString(sNetworkErrorMsg)
                                                          }];
         if (fblock) {
             fblock(err);
@@ -376,8 +392,8 @@ static MJReachabilityStatus g_reachableState = MJReachabilityStatusUnknown;
         NSError *err = [[NSError alloc] initWithDomain:kErrorDomainWebService
                                                   code:sNetworkOffNet
                                               userInfo:@{
-                                                         NSLocalizedDescriptionKey:sNetworkErrorMsg,
-                                                         NSLocalizedFailureReasonErrorKey:sNetworkErrorMsg
+                                                         NSLocalizedDescriptionKey:locString(sNetworkErrorMsg),
+                                                         NSLocalizedFailureReasonErrorKey:locString(sNetworkErrorMsg)
                                                          }];
         if (fblock) {
             fblock(err);
@@ -451,7 +467,7 @@ static MJReachabilityStatus g_reachableState = MJReachabilityStatusUnknown;
 {
     [self dataInit];
     if (g_reachableState == AFNetworkReachabilityStatusNotReachable) {
-        completion ? completion(NO, sNetworkErrorMsg, nil) : nil;
+        completion ? completion(NO, locString(sNetworkErrorMsg), nil) : nil;
         return;
     }
     
