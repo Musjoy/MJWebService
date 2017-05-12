@@ -55,6 +55,8 @@ typedef NS_ENUM(NSInteger, MJReachabilityStatus) {
 FOUNDATION_EXPORT NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status);
 
 
+typedef void (^MJResponseBlock)(NSURLResponse *response, id responseData, NSError *error);
+
 //操作成功（网络请求成功，返回值Success = true,两个条件同时成立，才会回调该方法）
 typedef void (^RequestSuccessBlock)(id respond);
 //操作失败（网络原因的失败，或者返回值Success != true则执行下面的回调）
@@ -72,54 +74,47 @@ typedef void (^RequestFailureBlock)(NSError *error);
 
 + (BOOL)startGet:(NSString *)serverUrl
             body:(NSDictionary *)body
-         success:(RequestSuccessBlock)sblock
-         failure:(RequestFailureBlock)fblock;
+      completion:(MJResponseBlock)completion;
 
 + (BOOL)startGetText:(NSString *)serverUrl
                 body:(NSDictionary *)body
-             success:(RequestSuccessBlock)sblock
-             failure:(RequestFailureBlock)fblock;
+          completion:(MJResponseBlock)completion;
 
 /**
  *	@brief	post请求接口
  *
  *	@param 	serverUrl       接口服务地址
  *	@param 	body            请求的body数据
- *	@param 	sblock          请求成功回调
- *	@param 	fblock          请求失败回调
+ *	@param 	completion      请求完成回调
  *
  *	@return	void
  */
 + (BOOL)startPost:(NSString *)serverUrl
              body:(NSDictionary *)body
-          success:(RequestSuccessBlock)sblock
-          failure:(RequestFailureBlock)fblock;
+       completion:(MJResponseBlock)completion;
 
 + (BOOL)startPut:(NSString *)serverUrl
             body:(NSDictionary *)body
-         success:(RequestSuccessBlock)sblock
-         failure:(RequestFailureBlock)fblock;
+      completion:(MJResponseBlock)completion;
 
 + (BOOL)startDelete:(NSString *)serverUrl
                body:(NSDictionary *)body
-            success:(RequestSuccessBlock)sblock
-            failure:(RequestFailureBlock)fblock;
+         completion:(MJResponseBlock)completion;
+
 /**
  *	@brief	多文件上传接口
  *
  *	@param 	serverUrl       接口服务地址
  *	@param 	body            请求body数据
  *	@param 	files           请求文件列表，eg：@[@"本地文件全路径", @"本地文件全路径"]
- *	@param 	sblock          成功回调
- *	@param 	fblock          失败回调
+ *	@param 	completion      请求完成回调
  *
  *	@return	void
  */
 + (BOOL)startUploadFiles:(NSString *)serverUrl
                     body:(NSDictionary *)body
                    files:(NSArray *)files
-                 success:(RequestSuccessBlock)sblock
-                 failure:(RequestFailureBlock)fblock;
+              completion:(MJResponseBlock)completion;
 
 /**
  *	@brief	单个文件下载
@@ -131,7 +126,7 @@ typedef void (^RequestFailureBlock)(NSError *error);
  */
 + (void)startDownload:(NSString *)remotePath
          withSavePath:(NSString *)localPath
-           completion:(void (^)(BOOL isSucceed, NSString *message, id responseOrErr))completion
+           completion:(MJResponseBlock)completion
         progressBlock:(void (^)(NSUInteger bytesRead, long long totalBytesRead, long long totalBytesExpectedToRead))progressBlock;
 
 

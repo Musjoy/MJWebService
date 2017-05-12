@@ -112,8 +112,7 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
 
 + (BOOL)startGet:(NSString *)serverUrl
             body:(NSDictionary *)body
-         success:(RequestSuccessBlock)sblock
-         failure:(RequestFailureBlock)fblock
+      completion:(MJResponseBlock)completion
 {
     [self dataInit];
     if (g_reachableState == AFNetworkReachabilityStatusNotReachable) {
@@ -123,9 +122,7 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
                                                          NSLocalizedDescriptionKey:locString(sNetworkErrorMsg),
                                                          NSLocalizedFailureReasonErrorKey:locString(sNetworkErrorMsg)
                                                          }];
-        if (fblock) {
-            fblock(err);
-        }
+        completion ? completion(nil, nil, err) : 0;
         return NO;
     }
     
@@ -154,24 +151,18 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
     [manager GET:pathUrl parameters:body progress:nil success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
         // 请求成功
         LogDebug(@"...>>>...receiveData = %@", responseObject);
-        if (sblock) {
-            sblock(responseObject);
-        }
-        
+        completion ? completion(task.response, responseObject, nil) : 0;
     } failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
         // 请求失败
         LogError(@"...>>>...Network error: %@ %@\n", serverUrl, error.localizedDescription);
-        if (fblock) {
-            fblock(error);
-        }
+        completion ? completion(task.response, nil, error) : 0;
     }];
     return YES;
 }
 
 + (BOOL)startGetText:(NSString *)serverUrl
                 body:(NSDictionary *)body
-             success:(RequestSuccessBlock)sblock
-             failure:(RequestFailureBlock)fblock
+          completion:(MJResponseBlock)completion
 {
     [self dataInit];
     if (g_reachableState == AFNetworkReachabilityStatusNotReachable) {
@@ -181,9 +172,7 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
                                                          NSLocalizedDescriptionKey:locString(sNetworkErrorMsg),
                                                          NSLocalizedFailureReasonErrorKey:locString(sNetworkErrorMsg)
                                                          }];
-        if (fblock) {
-            fblock(err);
-        }
+        completion ? completion(nil, nil, err) : 0;
         return NO;
     }
     
@@ -209,16 +198,11 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
             responseObject = [[NSString alloc] initWithData:responseObject encoding:NSUTF8StringEncoding];
         }
         LogDebug(@"...>>>...receiveData = %@", responseObject);
-        if (sblock) {
-            sblock(responseObject);
-        }
-        
+        completion ? completion(task.response, responseObject, nil) : 0;
     } failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
         // 请求失败
         LogError(@"...>>>...Network error: %@ %@\n", serverUrl, error.localizedDescription);
-        if (fblock) {
-            fblock(error);
-        }
+        completion ? completion(task.response, nil, error) : 0;
     }];
     return YES;
 }
@@ -227,8 +211,7 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
 
 + (BOOL)startPost:(NSString *)serverUrl
              body:(NSDictionary *)body
-          success:(RequestSuccessBlock)sblock
-          failure:(RequestFailureBlock)fblock
+       completion:(MJResponseBlock)completion
 {
     [self dataInit];
     if (g_reachableState == AFNetworkReachabilityStatusNotReachable) {
@@ -238,9 +221,7 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
                                                          NSLocalizedDescriptionKey:locString(sNetworkErrorMsg),
                                                          NSLocalizedFailureReasonErrorKey:locString(sNetworkErrorMsg)
                                                          }];
-        if (fblock) {
-            fblock(err);
-        }
+        completion ? completion(nil, nil, err) : 0;
         return NO;
     }
     
@@ -273,16 +254,11 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
     [manager POST:pathUrl parameters:body progress:nil success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
         // 请求成功
         LogDebug(@"...>>>...receiveData = %@", responseObject);
-        if (sblock) {
-            sblock(responseObject);
-        }
-        
+        completion ? completion(task.response, responseObject, nil) : 0;
     } failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
         // 请求失败
         LogError(@"...>>>...Network error: %@ %@\n", serverUrl, error.localizedDescription);
-        if (fblock) {
-            fblock(error);
-        }
+        completion ? completion(task.response, nil, error) : 0;
     }];
     return YES;
 }
@@ -291,8 +267,7 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
 
 + (BOOL)startPut:(NSString *)serverUrl
             body:(NSDictionary *)body
-         success:(RequestSuccessBlock)sblock
-         failure:(RequestFailureBlock)fblock
+      completion:(MJResponseBlock)completion
 {
     [self dataInit];
     if (g_reachableState == AFNetworkReachabilityStatusNotReachable) {
@@ -302,9 +277,7 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
                                                          NSLocalizedDescriptionKey:locString(sNetworkErrorMsg),
                                                          NSLocalizedFailureReasonErrorKey:locString(sNetworkErrorMsg)
                                                          }];
-        if (fblock) {
-            fblock(err);
-        }
+        completion ? completion(nil, nil, err) : 0;
         return NO;
     }
     
@@ -337,16 +310,11 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
     [manager PUT:pathUrl parameters:body success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
         // 请求成功
         LogDebug(@"...>>>...receiveData = %@", responseObject);
-        if (sblock) {
-            sblock(responseObject);
-        }
-        
+        completion ? completion(task.response, responseObject, nil) : 0;
     } failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
         // 请求失败
         LogError(@"...>>>...Network error: %@ %@\n", serverUrl, error.localizedDescription);
-        if (fblock) {
-            fblock(error);
-        }
+        completion ? completion(task.response, nil, error) : 0;
     }];
     return YES;
 }
@@ -355,8 +323,7 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
 
 + (BOOL)startDelete:(NSString *)serverUrl
                body:(NSDictionary *)body
-            success:(RequestSuccessBlock)sblock
-            failure:(RequestFailureBlock)fblock
+         completion:(MJResponseBlock)completion
 {
     [self dataInit];
     if (g_reachableState == AFNetworkReachabilityStatusNotReachable) {
@@ -366,9 +333,7 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
                                                          NSLocalizedDescriptionKey:locString(sNetworkErrorMsg),
                                                          NSLocalizedFailureReasonErrorKey:locString(sNetworkErrorMsg)
                                                          }];
-        if (fblock) {
-            fblock(err);
-        }
+        completion ? completion(nil, nil, err) : 0;
         return NO;
     }
     
@@ -401,16 +366,11 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
     [manager DELETE:pathUrl parameters:body success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
         // 请求成功
         LogDebug(@"...>>>...receiveData = %@", responseObject);
-        if (sblock) {
-            sblock(responseObject);
-        }
-        
+        completion ? completion(task.response, responseObject, nil) : 0;
     } failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
         // 请求失败
         LogError(@"...>>>...Network error: %@ %@\n", serverUrl, error.localizedDescription);
-        if (fblock) {
-            fblock(error);
-        }
+        completion ? completion(task.response, nil, error) : 0;
     }];
     return YES;
 }
@@ -422,8 +382,7 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
 + (BOOL)startUploadFiles:(NSString *)serverUrl
                     body:(NSDictionary *)body
                    files:(NSArray *)files
-                 success:(RequestSuccessBlock)sblock
-                 failure:(RequestFailureBlock)fblock
+              completion:(MJResponseBlock)completion
 {
     [self dataInit];
     if (g_reachableState == AFNetworkReachabilityStatusNotReachable) {
@@ -433,9 +392,7 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
                                                          NSLocalizedDescriptionKey:locString(sNetworkErrorMsg),
                                                          NSLocalizedFailureReasonErrorKey:locString(sNetworkErrorMsg)
                                                          }];
-        if (fblock) {
-            fblock(err);
-        }
+        completion ? completion(nil, nil, err) : 0;
         return NO;
     }
     
@@ -482,15 +439,11 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
     } success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
         // 请求成功
         LogDebug(@"...>>>...receiveData = %@", responseObject);
-        if (sblock) {
-            sblock(responseObject);
-        }
+        completion ? completion(task.response, responseObject, nil) : 0;
     } failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
         // 请求失败
         LogError(@"...>>>...Network error: %@ %@\n", serverUrl, error.localizedDescription);
-        if (fblock) {
-            fblock(error);
-        }
+        completion ? completion(task.response, nil, error) : 0;
     }];
     return YES;
 }
@@ -501,12 +454,18 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
 /** 单个文件下载 */
 + (void)startDownload:(NSString *)remotePath
          withSavePath:(NSString *)localPath
-           completion:(void (^)(BOOL, NSString *, id))completion
+           completion:(MJResponseBlock)completion
         progressBlock:(void (^)(NSUInteger bytesRead, long long totalBytesRead, long long totalBytesExpectedToRead))progressBlock
 {
     [self dataInit];
     if (g_reachableState == AFNetworkReachabilityStatusNotReachable) {
-        completion ? completion(NO, locString(sNetworkErrorMsg), nil) : nil;
+        NSError *err = [[NSError alloc] initWithDomain:kErrorDomainWebService
+                                                  code:sNetworkOffNet
+                                              userInfo:@{
+                                                         NSLocalizedDescriptionKey:locString(sNetworkErrorMsg),
+                                                         NSLocalizedFailureReasonErrorKey:locString(sNetworkErrorMsg)
+                                                         }];
+        completion ? completion(nil, nil, err) : 0;
         return;
     }
     
@@ -547,34 +506,28 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
     } destination:^NSURL * _Nonnull(NSURL * _Nonnull targetPath, NSURLResponse * _Nonnull response) {
         return [NSURL fileURLWithPath:filePathTemp];
     } completionHandler:^(NSURLResponse * _Nonnull response, NSURL * _Nullable filePath, NSError * _Nullable error) {
-        if (error) {
-            // 下载失败
-            LogError(@"...>>>...Network error: %@ %@\n", remotePath, error.localizedDescription);
-            dispatch_async(dispatch_get_main_queue(), ^{
-                NSFileManager *fileManager = [NSFileManager defaultManager];
-                NSError *err = nil;
-                if ([fileManager fileExistsAtPath:filePathTemp]) {
-                    [fileManager removeItemAtPath:filePathTemp error:&err];
-                }
-                completion ? completion(NO, @"Download failed!", error) : nil;
-            });
-        } else {
-            LogInfo(@"...>>>...Successfully downloaded file\n\t %@\n\tto %@\n", remotePath, localPath);
-            dispatch_async(dispatch_get_main_queue(), ^{
-                if (completion) {
-                    NSFileManager *fileManager = [NSFileManager defaultManager];
-                    NSError *err = nil;
-                    if ([fileManager fileExistsAtPath:filePathTemp]) {
-                        if ([fileManager fileExistsAtPath:localPath]) {
-                            [fileManager removeItemAtPath:localPath error:&err];
-                        }
+        dispatch_async(dispatch_get_main_queue(), ^{
+            if (error) {
+                // 下载失败
+                LogError(@"...>>>...Network error: %@ %@\n", remotePath, error.localizedDescription);
+            }
+            NSFileManager *fileManager = [NSFileManager defaultManager];
+            NSError *err = nil;
+            if ([fileManager fileExistsAtPath:filePathTemp]) {
+                if (error) {
+                    [fileManager removeItemAtPath:filePathTemp error:NULL];
+                } else {
+                    LogInfo(@"...>>>...Successfully downloaded file\n\t %@\n\tto %@\n", remotePath, localPath);
+                    if ([fileManager fileExistsAtPath:localPath]) {
+                        [fileManager removeItemAtPath:localPath error:&err];
+                    }
+                    if (!err) {
                         [fileManager moveItemAtPath:filePathTemp toPath:localPath error:&err];
                     }
-                    
-                    completion ? completion(YES, @"Download succeed!", response) : nil;
                 }
-            });
-        }
+            }
+            completion ? completion(response, filePath, err?:error) : nil;
+        });
     }];
     [downloadTask resume];
 }
