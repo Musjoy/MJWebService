@@ -8,6 +8,24 @@
 
 #import <Foundation/Foundation.h>
 
+#ifndef FILE_NAME_CER_TRUST_LIST
+#define FILE_NAME_CER_TRUST_LIST    @"cer_trust_list"
+#endif
+
+#ifndef SERVER_CER_TRUST_LIST
+/// 默认证书信任列表
+#define SERVER_CER_TRUST_LIST       @[\
+@"VeriSign Class 3 Public Primary Certification Authority - G5",\
+@"DST Root CA X3",\
+@"GeoTrust Global CA",\
+@"DigiCert High Assurance EV Root CA",\
+@"GlobalSign Root CA",\
+@"GeoTrust Primary Certification Authority",\
+@"StartCom Certification Authority",\
+@"Go Daddy Root Certificate Authority - G2"\
+]
+#endif
+
 // 通知
 /// 网络状态变化通知
 static NSString *const kNoticReachabilityChange = @"NoticReachabilityChange";
@@ -24,6 +42,7 @@ static NSString *const kErrorDomainWebService   = @"WebService";
 #define sNetworkUnreachMsg          @"Network Unreachable"
 #define sNetworkErrorMsg            @"Network Error"
 
+typedef NSURLSessionAuthChallengeDisposition (^MJURLSessionDidReceiveChallengeBlock)(NSURLSession *session, NSURLAuthenticationChallenge *challenge, NSURLCredential * __autoreleasing *credential);
 
 typedef NS_ENUM(NSInteger, MJReachabilityStatus) {
     MJReachabilityStatusUnknown          = -1,
@@ -47,6 +66,9 @@ typedef void (^RequestFailureBlock)(NSError *error);
 + (void)dataInit;
 
 + (MJReachabilityStatus)reachableState;
+
++ (void)setSesionDidReceiveChallengeBlock:(MJURLSessionDidReceiveChallengeBlock)sesionDidReceiveChallengeBlock;
+
 
 + (BOOL)startGet:(NSString *)serverUrl
             body:(NSDictionary *)body

@@ -10,6 +10,7 @@
 #import "AFHTTPSessionManager.h"
 #import "AFNetworkReachabilityManager.h"
 #import HEADER_LOCALIZE
+#import HEADER_FILE_SOURCE
 
 #define REQUEST_TIMEOUT 30
 #define UPLOAD_TIMEOUT 120
@@ -20,6 +21,7 @@ static AFNetworkReachabilityManager *s_hostReach = nil;
 
 static MJReachabilityStatus g_reachableState = MJReachabilityStatusUnknown;
 
+static MJURLSessionDidReceiveChallengeBlock s_sessionDidReceiveChallengBlock = NULL;
 
 NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
     switch (status) {
@@ -38,6 +40,7 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
 
 @interface MJWebService ()
 
+@property (nonatomic, strong) MJURLSessionDidReceiveChallengeBlock sesionDidReceiveChallengeBlock;
 
 @end
 
@@ -62,6 +65,36 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
         }];
         [s_hostReach startMonitoring];  //开始监听，会启动一个run loop
         g_reachableState = (MJReachabilityStatus)s_hostReach.networkReachabilityStatus;
+        
+        if (s_sessionDidReceiveChallengBlock == NULL) {
+            
+            NSArray *arrTrustList = getFileData(FILE_NAME_CER_TRUST_LIST);
+            if (arrTrustList == nil) {
+                arrTrustList = SERVER_CER_TRUST_LIST;
+            }
+            NSMutableDictionary *dicTrusts = [[NSMutableDictionary alloc] init];
+            for (NSString *ca in arrTrustList) {
+                [dicTrusts setObject:@YES forKey:ca];
+            }
+            
+            s_sessionDidReceiveChallengBlock = ^NSURLSessionAuthChallengeDisposition(NSURLSession * _Nonnull session, NSURLAuthenticationChallenge * _Nonnull challenge, NSURLCredential *__autoreleasing  _Nullable * _Nullable credential) {
+                *credential = [NSURLCredential credentialForTrust:challenge.protectionSpace.serverTrust];
+                SecTrustRef serverTrust = challenge.protectionSpace.serverTrust;
+                CFIndex certificateCount = SecTrustGetCertificateCount(serverTrust);
+                if (certificateCount > 0) {
+                    SecCertificateRef certificate = SecTrustGetCertificateAtIndex(serverTrust, certificateCount-1);
+                    CFStringRef strSummaryRef = SecCertificateCopySubjectSummary(certificate);
+                    NSString *strSummary = (__bridge NSString *)strSummaryRef;
+                    CFRelease(strSummaryRef);
+                    if (strSummary && [dicTrusts objectForKey:strSummary]) {
+                        return NSURLSessionAuthChallengePerformDefaultHandling;
+                    } else {
+                        LogError(@"\n\t%@ is not a trusted root CA", strSummary);
+                    }
+                }
+                return NSURLSessionAuthChallengeCancelAuthenticationChallenge;
+            };
+        }
     }
 }
 
@@ -70,6 +103,10 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
     return g_reachableState;
 }
 
++ (void)setSesionDidReceiveChallengeBlock:(MJURLSessionDidReceiveChallengeBlock)sesionDidReceiveChallengeBlock
+{
+    s_sessionDidReceiveChallengBlock = sesionDidReceiveChallengeBlock;
+}
 
 #pragma mark - 发起GET请求
 
@@ -109,10 +146,9 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
 
     }
     
-    // 信任无效证实
+    // 证书信任统一处理
     [manager setSessionDidReceiveAuthenticationChallengeBlock:^NSURLSessionAuthChallengeDisposition(NSURLSession * _Nonnull session, NSURLAuthenticationChallenge * _Nonnull challenge, NSURLCredential *__autoreleasing  _Nullable * _Nullable credential) {
-        *credential = [NSURLCredential credentialForTrust:challenge.protectionSpace.serverTrust];
-        return NSURLSessionAuthChallengeUseCredential;
+        return s_sessionDidReceiveChallengBlock(session, challenge, credential);
     }];
     
     [manager GET:pathUrl parameters:body progress:nil success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
@@ -162,10 +198,9 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
     manager.responseSerializer = [AFHTTPResponseSerializer serializer];
     [manager.requestSerializer setTimeoutInterval:REQUEST_TIMEOUT];
     
-    // 信任无效证实
+    // 证书信任统一处理
     [manager setSessionDidReceiveAuthenticationChallengeBlock:^NSURLSessionAuthChallengeDisposition(NSURLSession * _Nonnull session, NSURLAuthenticationChallenge * _Nonnull challenge, NSURLCredential *__autoreleasing  _Nullable * _Nullable credential) {
-        *credential = [NSURLCredential credentialForTrust:challenge.protectionSpace.serverTrust];
-        return NSURLSessionAuthChallengeUseCredential;
+        return s_sessionDidReceiveChallengBlock(session, challenge, credential);
     }];
     
     [manager GET:pathUrl parameters:body progress:nil success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
@@ -223,9 +258,10 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
     }
     manager.responseSerializer = [AFJSONResponseSerializer serializer];
     [manager.requestSerializer setTimeoutInterval:REQUEST_TIMEOUT];
+
+    // 证书信任统一处理
     [manager setSessionDidReceiveAuthenticationChallengeBlock:^NSURLSessionAuthChallengeDisposition(NSURLSession * _Nonnull session, NSURLAuthenticationChallenge * _Nonnull challenge, NSURLCredential *__autoreleasing  _Nullable * _Nullable credential) {
-        *credential = [NSURLCredential credentialForTrust:challenge.protectionSpace.serverTrust];
-        return NSURLSessionAuthChallengeUseCredential;
+        return s_sessionDidReceiveChallengBlock(session, challenge, credential);
     }];
     
     if ([body[@"Authorization"] length] > 0) {
@@ -286,9 +322,10 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
     }
     manager.responseSerializer = [AFJSONResponseSerializer serializer];
     [manager.requestSerializer setTimeoutInterval:REQUEST_TIMEOUT];
+
+    // 证书信任统一处理
     [manager setSessionDidReceiveAuthenticationChallengeBlock:^NSURLSessionAuthChallengeDisposition(NSURLSession * _Nonnull session, NSURLAuthenticationChallenge * _Nonnull challenge, NSURLCredential *__autoreleasing  _Nullable * _Nullable credential) {
-        *credential = [NSURLCredential credentialForTrust:challenge.protectionSpace.serverTrust];
-        return NSURLSessionAuthChallengeUseCredential;
+        return s_sessionDidReceiveChallengBlock(session, challenge, credential);
     }];
     
     if ([body[@"Authorization"] length] > 0) {
@@ -349,9 +386,10 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
     }
     manager.responseSerializer = [AFJSONResponseSerializer serializer];
     [manager.requestSerializer setTimeoutInterval:REQUEST_TIMEOUT];
+
+    // 证书信任统一处理
     [manager setSessionDidReceiveAuthenticationChallengeBlock:^NSURLSessionAuthChallengeDisposition(NSURLSession * _Nonnull session, NSURLAuthenticationChallenge * _Nonnull challenge, NSURLCredential *__autoreleasing  _Nullable * _Nullable credential) {
-        *credential = [NSURLCredential credentialForTrust:challenge.protectionSpace.serverTrust];
-        return NSURLSessionAuthChallengeUseCredential;
+        return s_sessionDidReceiveChallengBlock(session, challenge, credential);
     }];
     
     if ([body[@"Authorization"] length] > 0) {
@@ -411,9 +449,10 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
     manager.requestSerializer = [AFHTTPRequestSerializer serializer];
     manager.responseSerializer = [AFJSONResponseSerializer serializer];
     [manager.requestSerializer setTimeoutInterval:UPLOAD_TIMEOUT];
+
+    // 证书信任统一处理
     [manager setSessionDidReceiveAuthenticationChallengeBlock:^NSURLSessionAuthChallengeDisposition(NSURLSession * _Nonnull session, NSURLAuthenticationChallenge * _Nonnull challenge, NSURLCredential *__autoreleasing  _Nullable * _Nullable credential) {
-        *credential = [NSURLCredential credentialForTrust:challenge.protectionSpace.serverTrust];
-        return NSURLSessionAuthChallengeUseCredential;
+        return s_sessionDidReceiveChallengBlock(session, challenge, credential);
     }];
     
     if ([body[@"Authorization"] length] > 0) {
@@ -489,9 +528,10 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
     
     NSURLSessionConfiguration *configuration = [NSURLSessionConfiguration defaultSessionConfiguration];
     AFURLSessionManager *manager = [[AFURLSessionManager alloc] initWithSessionConfiguration:configuration];
+
+    // 证书信任统一处理
     [manager setSessionDidReceiveAuthenticationChallengeBlock:^NSURLSessionAuthChallengeDisposition(NSURLSession * _Nonnull session, NSURLAuthenticationChallenge * _Nonnull challenge, NSURLCredential *__autoreleasing  _Nullable * _Nullable credential) {
-        *credential = [NSURLCredential credentialForTrust:challenge.protectionSpace.serverTrust];
-        return NSURLSessionAuthChallengeUseCredential;
+        return s_sessionDidReceiveChallengBlock(session, challenge, credential);
     }];
     
     NSURLSessionDownloadTask *downloadTask = [manager downloadTaskWithRequest:request progress:^(NSProgress * _Nonnull downloadProgress) {
