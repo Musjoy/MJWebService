@@ -245,10 +245,10 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
     } else {
         manager.requestSerializer = [AFHTTPRequestSerializer serializer];
     }
-    if (body[@"testResponse"] && [body[@"testResponse"] boolValue]) {
-        manager.responseSerializer = [AFJSONResponseSerializer serializer];
-    } else {
+    if (body[@"textResponse"] && [body[@"textResponse"] boolValue]) {
         manager.responseSerializer = [AFHTTPResponseSerializer serializer];
+    } else {
+        manager.responseSerializer = [AFJSONResponseSerializer serializer];
     }
     [manager.requestSerializer setTimeoutInterval:REQUEST_TIMEOUT];
 
