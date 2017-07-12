@@ -240,12 +240,16 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
     
     AFHTTPSessionManager *manager=[AFHTTPSessionManager manager];
     
-    if (body[@"isJsonRequest"] && [body[@"isJsonRequest"] boolValue]) {
+    if (body[@"jsonRequest"] && [body[@"jsonRequest"] boolValue]) {
         manager.requestSerializer = [AFJSONRequestSerializer serializer];
     } else {
         manager.requestSerializer = [AFHTTPRequestSerializer serializer];
     }
-    manager.responseSerializer = [AFJSONResponseSerializer serializer];
+    if (body[@"testResponse"] && [body[@"testResponse"] boolValue]) {
+        manager.responseSerializer = [AFJSONResponseSerializer serializer];
+    } else {
+        manager.responseSerializer = [AFHTTPResponseSerializer serializer];
+    }
     [manager.requestSerializer setTimeoutInterval:REQUEST_TIMEOUT];
 
     // 证书信任统一处理
@@ -303,7 +307,7 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
     
     AFHTTPSessionManager *manager=[AFHTTPSessionManager manager];
     
-    if (body[@"isJsonRequest"] && [body[@"isJsonRequest"] boolValue]) {
+    if (body[@"jsonRequest"] && [body[@"jsonRequest"] boolValue]) {
         manager.requestSerializer = [AFJSONRequestSerializer serializer];
     } else {
         manager.requestSerializer = [AFHTTPRequestSerializer serializer];
@@ -359,7 +363,7 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
     
     AFHTTPSessionManager *manager=[AFHTTPSessionManager manager];
     
-    if (body[@"isJsonRequest"] && [body[@"isJsonRequest"] boolValue]) {
+    if (body[@"jsonRequest"] && [body[@"jsonRequest"] boolValue]) {
         manager.requestSerializer = [AFJSONRequestSerializer serializer];
     } else {
         manager.requestSerializer = [AFHTTPRequestSerializer serializer];
