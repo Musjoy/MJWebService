@@ -102,10 +102,19 @@ typedef void (^RequestFailureBlock)(NSError *error);
             body:(NSDictionary *)body
       completion:(MJResponseBlock)completion;
 
++ (BOOL)startPut:(NSString *)serverUrl
+          header:(NSDictionary *)header
+            body:(NSDictionary *)body
+      completion:(MJResponseBlock)completion;
+
 + (BOOL)startDelete:(NSString *)serverUrl
                body:(NSDictionary *)body
          completion:(MJResponseBlock)completion;
 
++ (BOOL)startDelete:(NSString *)serverUrl
+             header:(NSDictionary *)header
+               body:(NSDictionary *)body
+         completion:(MJResponseBlock)completion;
 /**
  *	@brief	多文件上传接口
  *
@@ -117,6 +126,12 @@ typedef void (^RequestFailureBlock)(NSError *error);
  *	@return	void
  */
 + (BOOL)startUploadFiles:(NSString *)serverUrl
+                    body:(NSDictionary *)body
+                   files:(NSArray *)files
+              completion:(MJResponseBlock)completion;
+
++ (BOOL)startUploadFiles:(NSString *)serverUrl
+                  header:(NSDictionary *)header
                     body:(NSDictionary *)body
                    files:(NSArray *)files
               completion:(MJResponseBlock)completion;

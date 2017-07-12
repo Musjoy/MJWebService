@@ -116,13 +116,7 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
 {
     [self dataInit];
     if (g_reachableState == AFNetworkReachabilityStatusNotReachable) {
-        NSError *err = [[NSError alloc] initWithDomain:kErrorDomainWebService
-                                                  code:sNetworkOffNet
-                                              userInfo:@{
-                                                         NSLocalizedDescriptionKey:locString(sNetworkErrorMsg),
-                                                         NSLocalizedFailureReasonErrorKey:locString(sNetworkErrorMsg)
-                                                         }];
-        completion ? completion(nil, nil, err) : 0;
+        completion ? completion(nil, nil, [self errorOffNet]) : 0;
         return NO;
     }
     
@@ -136,12 +130,6 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
     manager.requestSerializer = [AFHTTPRequestSerializer serializer];
     manager.responseSerializer = [AFJSONResponseSerializer serializer];
     [manager.requestSerializer setTimeoutInterval:REQUEST_TIMEOUT];
-    
-    if ([body[@"Authorization"] length] > 0) {
-        [manager.requestSerializer setValue:body[@"Authorization"]
-                         forHTTPHeaderField:@"Authorization"];
-
-    }
     
     // 证书信任统一处理
     [manager setSessionDidReceiveAuthenticationChallengeBlock:^NSURLSessionAuthChallengeDisposition(NSURLSession * _Nonnull session, NSURLAuthenticationChallenge * _Nonnull challenge, NSURLCredential *__autoreleasing  _Nullable * _Nullable credential) {
@@ -166,13 +154,7 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
 {
     [self dataInit];
     if (g_reachableState == AFNetworkReachabilityStatusNotReachable) {
-        NSError *err = [[NSError alloc] initWithDomain:kErrorDomainWebService
-                                                  code:sNetworkOffNet
-                                              userInfo:@{
-                                                         NSLocalizedDescriptionKey:locString(sNetworkErrorMsg),
-                                                         NSLocalizedFailureReasonErrorKey:locString(sNetworkErrorMsg)
-                                                         }];
-        completion ? completion(nil, nil, err) : 0;
+        completion ? completion(nil, nil, [self errorOffNet]) : 0;
         return NO;
     }
     
@@ -223,13 +205,7 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
 {
     [self dataInit];
     if (g_reachableState == AFNetworkReachabilityStatusNotReachable) {
-        NSError *err = [[NSError alloc] initWithDomain:kErrorDomainWebService
-                                                  code:sNetworkOffNet
-                                              userInfo:@{
-                                                         NSLocalizedDescriptionKey:locString(sNetworkErrorMsg),
-                                                         NSLocalizedFailureReasonErrorKey:locString(sNetworkErrorMsg)
-                                                         }];
-        completion ? completion(nil, nil, err) : 0;
+        completion ? completion(nil, nil, [self errorOffNet]) : 0;
         return NO;
     }
     
@@ -238,37 +214,14 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
     LogTrace(@"...>>>...requestUrl: %@\n", pathUrl);
     LogDebug(@"...>>>...requestBody: %@\n", body);
     
-    AFHTTPSessionManager *manager=[AFHTTPSessionManager manager];
+    AFHTTPSessionManager *manager = [self managerWithHeader:header];
     
-    if (body[@"jsonRequest"] && [body[@"jsonRequest"] boolValue]) {
-        manager.requestSerializer = [AFJSONRequestSerializer serializer];
-    } else {
-        manager.requestSerializer = [AFHTTPRequestSerializer serializer];
-    }
-    if (body[@"textResponse"] && [body[@"textResponse"] boolValue]) {
-        manager.responseSerializer = [AFHTTPResponseSerializer serializer];
-    } else {
-        manager.responseSerializer = [AFJSONResponseSerializer serializer];
-    }
     [manager.requestSerializer setTimeoutInterval:REQUEST_TIMEOUT];
 
     // 证书信任统一处理
     [manager setSessionDidReceiveAuthenticationChallengeBlock:^NSURLSessionAuthChallengeDisposition(NSURLSession * _Nonnull session, NSURLAuthenticationChallenge * _Nonnull challenge, NSURLCredential *__autoreleasing  _Nullable * _Nullable credential) {
         return s_sessionDidReceiveChallengBlock(session, challenge, credential);
     }];
-    
-    if ([body[@"Authorization"] length] > 0) {
-        [manager.requestSerializer setValue:body[@"Authorization"]
-                         forHTTPHeaderField:@"Authorization"];
-        
-    }
-    if (header && header.allKeys.count > 0) {
-        for (NSString *aKey in header.allKeys) {
-            NSString *aValue = header[aKey];
-            [manager.requestSerializer setValue:aValue
-                             forHTTPHeaderField:aKey];
-        }
-    }
     
     [manager POST:pathUrl parameters:body progress:nil success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
         // 请求成功
@@ -288,15 +241,17 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
             body:(NSDictionary *)body
       completion:(MJResponseBlock)completion
 {
+    return [self startPut:serverUrl header:nil body:body completion:completion];
+}
+
++ (BOOL)startPut:(NSString *)serverUrl
+          header:(NSDictionary *)header
+            body:(NSDictionary *)body
+      completion:(MJResponseBlock)completion
+{
     [self dataInit];
     if (g_reachableState == AFNetworkReachabilityStatusNotReachable) {
-        NSError *err = [[NSError alloc] initWithDomain:kErrorDomainWebService
-                                                  code:sNetworkOffNet
-                                              userInfo:@{
-                                                         NSLocalizedDescriptionKey:locString(sNetworkErrorMsg),
-                                                         NSLocalizedFailureReasonErrorKey:locString(sNetworkErrorMsg)
-                                                         }];
-        completion ? completion(nil, nil, err) : 0;
+        completion ? completion(nil, nil, [self errorOffNet]) : 0;
         return NO;
     }
     
@@ -305,26 +260,14 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
     LogTrace(@"...>>>...requestUrl: %@\n", pathUrl);
     LogDebug(@"...>>>...requestBody: %@\n", body);
     
-    AFHTTPSessionManager *manager=[AFHTTPSessionManager manager];
+    AFHTTPSessionManager *manager = [self managerWithHeader:header];
     
-    if (body[@"jsonRequest"] && [body[@"jsonRequest"] boolValue]) {
-        manager.requestSerializer = [AFJSONRequestSerializer serializer];
-    } else {
-        manager.requestSerializer = [AFHTTPRequestSerializer serializer];
-    }
-    manager.responseSerializer = [AFJSONResponseSerializer serializer];
     [manager.requestSerializer setTimeoutInterval:REQUEST_TIMEOUT];
-
+    
     // 证书信任统一处理
     [manager setSessionDidReceiveAuthenticationChallengeBlock:^NSURLSessionAuthChallengeDisposition(NSURLSession * _Nonnull session, NSURLAuthenticationChallenge * _Nonnull challenge, NSURLCredential *__autoreleasing  _Nullable * _Nullable credential) {
         return s_sessionDidReceiveChallengBlock(session, challenge, credential);
     }];
-    
-    if ([body[@"Authorization"] length] > 0) {
-        [manager.requestSerializer setValue:body[@"Authorization"]
-                         forHTTPHeaderField:@"Authorization"];
-        
-    }
     
     [manager PUT:pathUrl parameters:body success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
         // 请求成功
@@ -344,15 +287,17 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
                body:(NSDictionary *)body
          completion:(MJResponseBlock)completion
 {
+    return [self startDelete:serverUrl header:nil body:body completion:completion];
+}
+
++ (BOOL)startDelete:(NSString *)serverUrl
+             header:(NSDictionary *)header
+               body:(NSDictionary *)body
+         completion:(MJResponseBlock)completion
+{
     [self dataInit];
     if (g_reachableState == AFNetworkReachabilityStatusNotReachable) {
-        NSError *err = [[NSError alloc] initWithDomain:kErrorDomainWebService
-                                                  code:sNetworkOffNet
-                                              userInfo:@{
-                                                         NSLocalizedDescriptionKey:locString(sNetworkErrorMsg),
-                                                         NSLocalizedFailureReasonErrorKey:locString(sNetworkErrorMsg)
-                                                         }];
-        completion ? completion(nil, nil, err) : 0;
+        completion ? completion(nil, nil, [self errorOffNet]) : 0;
         return NO;
     }
     
@@ -361,26 +306,14 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
     LogTrace(@"...>>>...requestUrl: %@\n", pathUrl);
     LogDebug(@"...>>>...requestBody: %@\n", body);
     
-    AFHTTPSessionManager *manager=[AFHTTPSessionManager manager];
+    AFHTTPSessionManager *manager = [self managerWithHeader:header];
     
-    if (body[@"jsonRequest"] && [body[@"jsonRequest"] boolValue]) {
-        manager.requestSerializer = [AFJSONRequestSerializer serializer];
-    } else {
-        manager.requestSerializer = [AFHTTPRequestSerializer serializer];
-    }
-    manager.responseSerializer = [AFJSONResponseSerializer serializer];
     [manager.requestSerializer setTimeoutInterval:REQUEST_TIMEOUT];
 
     // 证书信任统一处理
     [manager setSessionDidReceiveAuthenticationChallengeBlock:^NSURLSessionAuthChallengeDisposition(NSURLSession * _Nonnull session, NSURLAuthenticationChallenge * _Nonnull challenge, NSURLCredential *__autoreleasing  _Nullable * _Nullable credential) {
         return s_sessionDidReceiveChallengBlock(session, challenge, credential);
     }];
-    
-    if ([body[@"Authorization"] length] > 0) {
-        [manager.requestSerializer setValue:body[@"Authorization"]
-                         forHTTPHeaderField:@"Authorization"];
-        
-    }
     
     [manager DELETE:pathUrl parameters:body success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
         // 请求成功
@@ -403,15 +336,18 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
                    files:(NSArray *)files
               completion:(MJResponseBlock)completion
 {
+    return [self startUploadFiles:serverUrl header:nil body:body files:files completion:completion];
+}
+
++ (BOOL)startUploadFiles:(NSString *)serverUrl
+                  header:(NSDictionary *)header
+                    body:(NSDictionary *)body
+                   files:(NSArray *)files
+              completion:(MJResponseBlock)completion
+{
     [self dataInit];
     if (g_reachableState == AFNetworkReachabilityStatusNotReachable) {
-        NSError *err = [[NSError alloc] initWithDomain:kErrorDomainWebService
-                                                  code:sNetworkOffNet
-                                              userInfo:@{
-                                                         NSLocalizedDescriptionKey:locString(sNetworkErrorMsg),
-                                                         NSLocalizedFailureReasonErrorKey:locString(sNetworkErrorMsg)
-                                                         }];
-        completion ? completion(nil, nil, err) : 0;
+        completion ? completion(nil, nil, [self errorOffNet]) : 0;
         return NO;
     }
     
@@ -420,22 +356,14 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
     LogTrace(@"...>>>...requestUrl: %@\n", pathUrl);
     LogDebug(@"...>>>...requestData: %@\n", body);
     
-    AFHTTPSessionManager *manager=[AFHTTPSessionManager manager];
+    AFHTTPSessionManager *manager = [self managerWithHeader:header];
     
-    manager.requestSerializer = [AFHTTPRequestSerializer serializer];
-    manager.responseSerializer = [AFJSONResponseSerializer serializer];
     [manager.requestSerializer setTimeoutInterval:UPLOAD_TIMEOUT];
 
     // 证书信任统一处理
     [manager setSessionDidReceiveAuthenticationChallengeBlock:^NSURLSessionAuthChallengeDisposition(NSURLSession * _Nonnull session, NSURLAuthenticationChallenge * _Nonnull challenge, NSURLCredential *__autoreleasing  _Nullable * _Nullable credential) {
         return s_sessionDidReceiveChallengBlock(session, challenge, credential);
     }];
-    
-    if ([body[@"Authorization"] length] > 0) {
-        [manager.requestSerializer setValue:body[@"Authorization"]
-                         forHTTPHeaderField:@"Authorization"];
-        
-    }
     
     [manager POST:pathUrl parameters:body constructingBodyWithBlock:^(id<AFMultipartFormData>  _Nonnull formData) {
         for (NSString *filePath in files) {
@@ -478,13 +406,7 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
 {
     [self dataInit];
     if (g_reachableState == AFNetworkReachabilityStatusNotReachable) {
-        NSError *err = [[NSError alloc] initWithDomain:kErrorDomainWebService
-                                                  code:sNetworkOffNet
-                                              userInfo:@{
-                                                         NSLocalizedDescriptionKey:locString(sNetworkErrorMsg),
-                                                         NSLocalizedFailureReasonErrorKey:locString(sNetworkErrorMsg)
-                                                         }];
-        completion ? completion(nil, nil, err) : 0;
+        completion ? completion(nil, nil, [self errorOffNet]) : 0;
         return;
     }
     
@@ -551,6 +473,46 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
     [downloadTask resume];
 }
 
+#pragma mark - Private
 
++ (NSError *)errorOffNet
+{
+    static NSError *err;
+    if (err == nil) {
+        err = [[NSError alloc] initWithDomain:kErrorDomainWebService
+                                         code:sNetworkOffNet
+                                     userInfo:@{
+                                                NSLocalizedDescriptionKey:locString(sNetworkErrorMsg),
+                                                NSLocalizedFailureReasonErrorKey:locString(sNetworkErrorMsg)
+                                                }];
+    }
+    return err;
+}
+
++ (AFHTTPSessionManager *)managerWithHeader:(NSDictionary *)header
+{
+    AFHTTPSessionManager *manager=[AFHTTPSessionManager manager];
+    
+    manager.requestSerializer = [AFHTTPRequestSerializer serializer];
+    manager.responseSerializer = [AFJSONResponseSerializer serializer];
+    
+    if (header && header.allKeys.count > 0) {
+        NSMutableDictionary *dicHeader = [header mutableCopy];
+        if (dicHeader[@"jsonRequest"] && [dicHeader[@"jsonRequest"] boolValue]) {
+            manager.requestSerializer = [AFJSONRequestSerializer serializer];
+            [dicHeader removeObjectForKey:@"jsonRequest"];
+        }
+        if (dicHeader[@"textResponse"] && [dicHeader[@"textResponse"] boolValue]) {
+            manager.responseSerializer = [AFHTTPResponseSerializer serializer];
+            [dicHeader removeObjectForKey:@"textResponse"];
+        }
+        for (NSString *aKey in dicHeader.allKeys) {
+            NSString *aValue = dicHeader[aKey];
+            [manager.requestSerializer setValue:aValue
+                             forHTTPHeaderField:aKey];
+        }
+    }
+    return manager;
+}
 
 @end
