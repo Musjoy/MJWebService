@@ -376,6 +376,15 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
            completion:(MJResponseBlock)completion
         progressBlock:(void (^)(NSUInteger bytesRead, long long totalBytesRead, long long totalBytesExpectedToRead))progressBlock
 {
+    return [self startDownload:remotePath header:nil withSavePath:localPath completion:completion progressBlock:progressBlock];
+}
+
++ (void)startDownload:(NSString *)remotePath
+               header:(NSDictionary *)header
+         withSavePath:(NSString *)localPath
+           completion:(MJResponseBlock)completion
+        progressBlock:(void (^)(NSUInteger bytesRead, long long totalBytesRead, long long totalBytesExpectedToRead))progressBlock
+{
     [self dataInit];
     if (g_reachableState == AFNetworkReachabilityStatusNotReachable) {
         completion ? completion(nil, nil, [self errorOffNet]) : 0;
@@ -385,9 +394,16 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
     LogTrace(@"...>>>...Start download file : %@\n", remotePath);
     
     NSString *remoteFilePath = remotePath;
-    NSURLRequest *request = [NSURLRequest requestWithURL:[NSURL URLWithString:remoteFilePath]
-                                             cachePolicy:NSURLRequestReloadIgnoringCacheData
-                                         timeoutInterval:DOWNLOAD_TIMEOUT];
+    NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:remoteFilePath]
+                                                           cachePolicy:NSURLRequestReloadIgnoringCacheData
+                                                       timeoutInterval:DOWNLOAD_TIMEOUT];
+    
+    if (header && header.allKeys.count > 0) {
+        for (NSString *aKey in header.allKeys) {
+            NSString *aValue = header[aKey];
+            [request setValue:aValue forHTTPHeaderField:aKey];
+        }
+    }
     
     // 避免同时下载数据到同一个文件
     NSString *filePathTemp = [NSString stringWithFormat:@"%@.temp",localPath];   //临时下载的文件路径
@@ -463,10 +479,7 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
 
 + (AFHTTPSessionManager *)managerWithHeader:(NSDictionary *)header
 {
-    AFHTTPSessionManager *manager=[AFHTTPSessionManager manager];
-    
-    manager.requestSerializer = [AFHTTPRequestSerializer serializer];
-    manager.responseSerializer = [AFJSONResponseSerializer serializer];
+    AFHTTPSessionManager *manager = [AFHTTPSessionManager manager];
     
     if (header && header.allKeys.count > 0) {
         NSMutableDictionary *dicHeader = [header mutableCopy];
