@@ -114,43 +114,20 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
             body:(NSDictionary *)body
       completion:(MJResponseBlock)completion
 {
-    [self dataInit];
-    if (g_reachableState == AFNetworkReachabilityStatusNotReachable) {
-        completion ? completion(nil, nil, [self errorOffNet]) : 0;
-        return NO;
-    }
-    
-    // 拼接请求url
-    NSString *pathUrl = [serverUrl stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]];
-    LogTrace(@"...>>>...requestUrl: %@\n", pathUrl);
-    LogDebug(@"...>>>...requestBody: %@\n", body);
-    
-    AFHTTPSessionManager *manager=[AFHTTPSessionManager manager];
-    
-    manager.requestSerializer = [AFHTTPRequestSerializer serializer];
-    manager.responseSerializer = [AFJSONResponseSerializer serializer];
-    [manager.requestSerializer setTimeoutInterval:REQUEST_TIMEOUT];
-    
-    // 证书信任统一处理
-    [manager setSessionDidReceiveAuthenticationChallengeBlock:^NSURLSessionAuthChallengeDisposition(NSURLSession * _Nonnull session, NSURLAuthenticationChallenge * _Nonnull challenge, NSURLCredential *__autoreleasing  _Nullable * _Nullable credential) {
-        return s_sessionDidReceiveChallengBlock(session, challenge, credential);
-    }];
-    
-    [manager GET:pathUrl parameters:body progress:nil success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
-        // 请求成功
-        LogDebug(@"...>>>...receiveData = %@", responseObject);
-        completion ? completion(task.response, responseObject, nil) : 0;
-    } failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
-        // 请求失败
-        LogError(@"...>>>...Network error: %@ %@\n", serverUrl, error.localizedDescription);
-        completion ? completion(task.response, nil, error) : 0;
-    }];
-    return YES;
+    return [self startGet:serverUrl header:nil body:body completion:completion];
 }
 
 + (BOOL)startGetText:(NSString *)serverUrl
                 body:(NSDictionary *)body
           completion:(MJResponseBlock)completion
+{
+    return [self startGet:serverUrl header:@{@"textResponse":@YES} body:body completion:completion];
+}
+
++ (BOOL)startGet:(NSString *)serverUrl
+          header:(NSDictionary *)header
+            body:(NSDictionary *)body
+      completion:(MJResponseBlock)completion
 {
     [self dataInit];
     if (g_reachableState == AFNetworkReachabilityStatusNotReachable) {
@@ -163,10 +140,8 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
     LogTrace(@"...>>>...requestUrl: %@\n", pathUrl);
     LogDebug(@"...>>>...requestBody: %@\n", body);
     
-    AFHTTPSessionManager *manager=[AFHTTPSessionManager manager];
+    AFHTTPSessionManager *manager = [self managerWithHeader:header];
     
-    manager.requestSerializer = [AFHTTPRequestSerializer serializer];
-    manager.responseSerializer = [AFHTTPResponseSerializer serializer];
     [manager.requestSerializer setTimeoutInterval:REQUEST_TIMEOUT];
     
     // 证书信任统一处理
@@ -176,9 +151,6 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
     
     [manager GET:pathUrl parameters:body progress:nil success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
         // 请求成功
-        if (responseObject && [responseObject isKindOfClass:[NSData class]]) {
-            responseObject = [[NSString alloc] initWithData:responseObject encoding:NSUTF8StringEncoding];
-        }
         LogDebug(@"...>>>...receiveData = %@", responseObject);
         completion ? completion(task.response, responseObject, nil) : 0;
     } failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {

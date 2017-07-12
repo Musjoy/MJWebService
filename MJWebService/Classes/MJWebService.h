@@ -80,6 +80,11 @@ typedef void (^RequestFailureBlock)(NSError *error);
                 body:(NSDictionary *)body
           completion:(MJResponseBlock)completion;
 
++ (BOOL)startGet:(NSString *)serverUrl
+          header:(NSDictionary *)header
+            body:(NSDictionary *)body
+      completion:(MJResponseBlock)completion;
+
 /**
  *	@brief	post请求接口
  *
