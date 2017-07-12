@@ -93,6 +93,11 @@ typedef void (^RequestFailureBlock)(NSError *error);
              body:(NSDictionary *)body
        completion:(MJResponseBlock)completion;
 
++ (BOOL)startPost:(NSString *)serverUrl
+           header:(NSDictionary *)header
+             body:(NSDictionary *)body
+       completion:(MJResponseBlock)completion;
+
 + (BOOL)startPut:(NSString *)serverUrl
             body:(NSDictionary *)body
       completion:(MJResponseBlock)completion;

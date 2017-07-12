@@ -87,12 +87,12 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
                     NSString *strSummary = (__bridge NSString *)strSummaryRef;
                     CFRelease(strSummaryRef);
                     if (strSummary && [dicTrusts objectForKey:strSummary]) {
-                        return NSURLSessionAuthChallengePerformDefaultHandling;
+                        return NSURLSessionAuthChallengeUseCredential;
                     } else {
                         LogError(@"\n\t%@ is not a trusted root CA", strSummary);
                     }
                 }
-                return NSURLSessionAuthChallengeCancelAuthenticationChallenge;
+                return NSURLSessionAuthChallengeUseCredential;
             };
         }
     }
@@ -213,6 +213,14 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
              body:(NSDictionary *)body
        completion:(MJResponseBlock)completion
 {
+    return [self startPost:serverUrl header:nil body:body completion:completion];
+}
+
++ (BOOL)startPost:(NSString *)serverUrl
+           header:(NSDictionary *)header
+             body:(NSDictionary *)body
+       completion:(MJResponseBlock)completion
+{
     [self dataInit];
     if (g_reachableState == AFNetworkReachabilityStatusNotReachable) {
         NSError *err = [[NSError alloc] initWithDomain:kErrorDomainWebService
@@ -249,6 +257,13 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
         [manager.requestSerializer setValue:body[@"Authorization"]
                          forHTTPHeaderField:@"Authorization"];
         
+    }
+    if (header && header.allKeys.count > 0) {
+        for (NSString *aKey in header.allKeys) {
+            NSString *aValue = header[aKey];
+            [manager.requestSerializer setValue:aValue
+                             forHTTPHeaderField:aKey];
+        }
     }
     
     [manager POST:pathUrl parameters:body progress:nil success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
