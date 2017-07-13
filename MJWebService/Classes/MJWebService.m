@@ -376,11 +376,12 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
            completion:(MJResponseBlock)completion
         progressBlock:(void (^)(NSUInteger bytesRead, long long totalBytesRead, long long totalBytesExpectedToRead))progressBlock
 {
-    return [self startDownload:remotePath header:nil withSavePath:localPath completion:completion progressBlock:progressBlock];
+    return [self startDownload:remotePath header:nil body:nil withSavePath:localPath completion:completion progressBlock:progressBlock];
 }
 
 + (void)startDownload:(NSString *)remotePath
                header:(NSDictionary *)header
+                 body:(NSDictionary *)body
          withSavePath:(NSString *)localPath
            completion:(MJResponseBlock)completion
         progressBlock:(void (^)(NSUInteger bytesRead, long long totalBytesRead, long long totalBytesExpectedToRead))progressBlock
@@ -416,6 +417,9 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
     
     NSURLSessionConfiguration *configuration = [NSURLSessionConfiguration defaultSessionConfiguration];
     AFURLSessionManager *manager = [[AFURLSessionManager alloc] initWithSessionConfiguration:configuration];
+    
+    AFHTTPRequestSerializer *requestSerializer = [AFHTTPRequestSerializer serializer];
+    request = [[requestSerializer requestBySerializingRequest:request withParameters:body error:NULL] mutableCopy];
 
     // 证书信任统一处理
     [manager setSessionDidReceiveAuthenticationChallengeBlock:^NSURLSessionAuthChallengeDisposition(NSURLSession * _Nonnull session, NSURLAuthenticationChallenge * _Nonnull challenge, NSURLCredential *__autoreleasing  _Nullable * _Nullable credential) {

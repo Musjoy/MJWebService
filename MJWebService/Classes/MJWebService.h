@@ -156,6 +156,7 @@ typedef void (^RequestFailureBlock)(NSError *error);
 
 + (void)startDownload:(NSString *)remotePath
                header:(NSDictionary *)header
+                 body:(NSDictionary *)body
          withSavePath:(NSString *)localPath
            completion:(MJResponseBlock)completion
         progressBlock:(void (^)(NSUInteger bytesRead, long long totalBytesRead, long long totalBytesExpectedToRead))progressBlock;
