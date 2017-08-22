@@ -26,6 +26,9 @@
 ]
 #endif
 
+// 定义该函数来开启安全请求
+//#define FUN_NEED_SECURITY_REQUEST
+
 // 通知
 /// 网络状态变化通知
 static NSString *const kNoticReachabilityChange = @"NoticReachabilityChange";
@@ -72,15 +75,15 @@ typedef void (^RequestFailureBlock)(NSError *error);
 + (void)setSesionDidReceiveChallengeBlock:(MJURLSessionDidReceiveChallengeBlock)sesionDidReceiveChallengeBlock;
 
 
-+ (BOOL)startGet:(NSString *)serverUrl
++ (void)startGet:(NSString *)serverUrl
             body:(NSDictionary *)body
       completion:(MJResponseBlock)completion;
 
-+ (BOOL)startGetText:(NSString *)serverUrl
++ (void)startGetText:(NSString *)serverUrl
                 body:(NSDictionary *)body
           completion:(MJResponseBlock)completion;
 
-+ (BOOL)startGet:(NSString *)serverUrl
++ (void)startGet:(NSString *)serverUrl
           header:(NSDictionary *)header
             body:(NSDictionary *)body
       completion:(MJResponseBlock)completion;
@@ -92,31 +95,30 @@ typedef void (^RequestFailureBlock)(NSError *error);
  *	@param 	body            请求的body数据
  *	@param 	completion      请求完成回调
  *
- *	@return	void
  */
-+ (BOOL)startPost:(NSString *)serverUrl
++ (void)startPost:(NSString *)serverUrl
              body:(NSDictionary *)body
        completion:(MJResponseBlock)completion;
 
-+ (BOOL)startPost:(NSString *)serverUrl
++ (void)startPost:(NSString *)serverUrl
            header:(NSDictionary *)header
              body:(NSDictionary *)body
        completion:(MJResponseBlock)completion;
 
-+ (BOOL)startPut:(NSString *)serverUrl
++ (void)startPut:(NSString *)serverUrl
             body:(NSDictionary *)body
       completion:(MJResponseBlock)completion;
 
-+ (BOOL)startPut:(NSString *)serverUrl
++ (void)startPut:(NSString *)serverUrl
           header:(NSDictionary *)header
             body:(NSDictionary *)body
       completion:(MJResponseBlock)completion;
 
-+ (BOOL)startDelete:(NSString *)serverUrl
++ (void)startDelete:(NSString *)serverUrl
                body:(NSDictionary *)body
          completion:(MJResponseBlock)completion;
 
-+ (BOOL)startDelete:(NSString *)serverUrl
++ (void)startDelete:(NSString *)serverUrl
              header:(NSDictionary *)header
                body:(NSDictionary *)body
          completion:(MJResponseBlock)completion;
@@ -130,12 +132,12 @@ typedef void (^RequestFailureBlock)(NSError *error);
  *
  *	@return	void
  */
-+ (BOOL)startUploadFiles:(NSString *)serverUrl
++ (void)startUploadFiles:(NSString *)serverUrl
                     body:(NSDictionary *)body
                    files:(NSArray *)files
               completion:(MJResponseBlock)completion;
 
-+ (BOOL)startUploadFiles:(NSString *)serverUrl
++ (void)startUploadFiles:(NSString *)serverUrl
                   header:(NSDictionary *)header
                     body:(NSDictionary *)body
                    files:(NSArray *)files
