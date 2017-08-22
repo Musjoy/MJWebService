@@ -26,7 +26,12 @@
 ]
 #endif
 
-// 定义该函数来开启安全请求
+// 定义该宏定义来开启安全请求
+#if defined(FUN_NEED_SECURITY_REQUEST) && !FUN_NEED_SECURITY_REQUEST
+#undef FUN_NEED_SECURITY_REQUEST
+#else
+#define FUN_NEED_SECURITY_REQUEST
+#endif
 //#define FUN_NEED_SECURITY_REQUEST
 
 // 通知
