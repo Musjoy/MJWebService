@@ -93,12 +93,13 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
                     CFStringRef strSummaryRef = SecCertificateCopySubjectSummary(certificate);
                     NSString *strSummary = (NSString *)CFBridgingRelease(strSummaryRef);
                     if (strSummary && [dicTrusts objectForKey:strSummary]) {
-                        return NSURLSessionAuthChallengeUseCredential;
+                        return NSURLSessionAuthChallengePerformDefaultHandling;
                     } else {
                         LogError(@"\n\t%@ is not a trusted root CA", strSummary);
+                        return NSURLSessionAuthChallengeCancelAuthenticationChallenge;
                     }
                 }
-                return NSURLSessionAuthChallengeUseCredential;
+                return NSURLSessionAuthChallengePerformDefaultHandling;
             };
         }
     }
@@ -124,9 +125,9 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
         return YES;
     }
     if (s_securityHaveChecked) {
-        if (!s_securityHaveChecked) {
+        if (!s_isRequestSecurity) {
             // 这里不回掉的话将没有地方回掉
-            completion(s_securityHaveChecked);
+            completion(s_isRequestSecurity);
         }
         return s_isRequestSecurity;
     }
@@ -210,7 +211,7 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
         if (isSucceed) {
             [self startGet:serverUrl header:header body:body completion:completion];
         } else {
-            completion ? completion(nil, nil, [self errorOffNet]) : 0;
+            completion ? completion(nil, nil, [self errorForbidden]) : 0;
         }
     }];
     if (!checkResult) {
@@ -267,7 +268,7 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
         if (isSucceed) {
             [self startPost:serverUrl header:header body:body completion:completion];
         } else {
-            completion ? completion(nil, nil, [self errorOffNet]) : 0;
+            completion ? completion(nil, nil, [self errorForbidden]) : 0;
         }
     }];
     if (!checkResult) {
@@ -324,7 +325,7 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
         if (isSucceed) {
             [self startPut:serverUrl header:header body:body completion:completion];
         } else {
-            completion ? completion(nil, nil, [self errorOffNet]) : 0;
+            completion ? completion(nil, nil, [self errorForbidden]) : 0;
         }
     }];
     if (!checkResult) {
@@ -381,7 +382,7 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
         if (isSucceed) {
             [self startDelete:serverUrl header:header body:body completion:completion];
         } else {
-            completion ? completion(nil, nil, [self errorOffNet]) : 0;
+            completion ? completion(nil, nil, [self errorForbidden]) : 0;
         }
     }];
     if (!checkResult) {
@@ -442,7 +443,7 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
         if (isSucceed) {
             [self startUploadFiles:serverUrl header:header body:body files:files completion:completion];
         } else {
-            completion ? completion(nil, nil, [self errorOffNet]) : 0;
+            completion ? completion(nil, nil, [self errorForbidden]) : 0;
         }
     }];
     if (!checkResult) {
@@ -522,7 +523,7 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
         if (isSucceed) {
             [self startDownload:remotePath header:header body:body withSavePath:localPath completion:completion progressBlock:progressBlock];
         } else {
-            completion ? completion(nil, nil, [self errorOffNet]) : 0;
+            completion ? completion(nil, nil, [self errorForbidden]) : 0;
         }
     }];
     if (!checkResult) {
@@ -610,10 +611,24 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
     static NSError *err;
     if (err == nil) {
         err = [[NSError alloc] initWithDomain:kErrorDomainWebService
-                                         code:sNetworkOffNet
+                                         code:sNetworkCodeOffNet
                                      userInfo:@{
-                                                NSLocalizedDescriptionKey:locString(sNetworkErrorMsg),
-                                                NSLocalizedFailureReasonErrorKey:locString(sNetworkErrorMsg)
+                                                NSLocalizedDescriptionKey:locString(sNetworkUnreachMsg),
+                                                NSLocalizedFailureReasonErrorKey:locString(sNetworkUnreachMsg)
+                                                }];
+    }
+    return err;
+}
+
++ (NSError *)errorForbidden
+{
+    static NSError *err;
+    if (err == nil) {
+        err = [[NSError alloc] initWithDomain:kErrorDomainWebService
+                                         code:sNetworkCodeForbidden
+                                     userInfo:@{
+                                                NSLocalizedDescriptionKey:locString(sNetworkForbidden),
+                                                NSLocalizedFailureReasonErrorKey:locString(sNetworkForbidden)
                                                 }];
     }
     return err;

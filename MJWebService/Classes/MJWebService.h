@@ -40,10 +40,13 @@ static NSString *const kNoticLoseNetwork        = @"NoticLoseNetwork";
 /// 错误域
 static NSString *const kErrorDomainWebService   = @"WebService";
 
-#define sNetworkOffNet              -10000
+#define sNetworkCodeOffNet          -10000
+#define sNetworkCodeForbidden       -20000
 // 相关提示文字
-#define sNetworkUnreachMsg          @"Network Unreachable"
 #define sNetworkErrorMsg            @"Network Error"
+#define sNetworkUnreachMsg          @"Network Unreachable"
+#define sNetworkForbidden           @"Network Forbidden"
+
 
 typedef NSURLSessionAuthChallengeDisposition (^MJURLSessionDidReceiveChallengeBlock)(NSURLSession *session, NSURLAuthenticationChallenge *challenge, NSURLCredential * __autoreleasing *credential);
 
@@ -130,7 +133,6 @@ typedef void (^RequestFailureBlock)(NSError *error);
  *	@param 	files           请求文件列表，eg：@[@"本地文件全路径", @"本地文件全路径"]
  *	@param 	completion      请求完成回调
  *
- *	@return	void
  */
 + (void)startUploadFiles:(NSString *)serverUrl
                     body:(NSDictionary *)body
