@@ -23,7 +23,7 @@ static MJReachabilityStatus g_reachableState = MJReachabilityStatusUnknown;
 
 static MJURLSessionDidReceiveChallengeBlock s_sessionDidReceiveChallengeBlock = NULL;
 
-#ifdef FUN_NEED_SECURITY_REQUEST
+#if defined(FUN_NEED_SECURITY_REQUEST) && defined(kServerBaseHost)
 // 请求安全性是否坚持
 static BOOL s_securityHaveChecked = NO;
 // 请求是否安全
