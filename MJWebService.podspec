@@ -8,7 +8,7 @@
 
 Pod::Spec.new do |s|
   s.name             = "MJWebService"
-  s.version          = "0.1.9"
+  s.version          = "0.1.10"
   s.summary          = "Encapsulation For AFNetworking."
 
 # This description is used to generate tags and improve search results.
