@@ -146,8 +146,8 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
     
     __block BOOL haveCheck = NO;
     
-    void(^requestRespond)(void) = ^(void) {
-        s_securityHaveChecked = YES;
+    void(^requestRespond)(BOOL) = ^(BOOL needRecheck) {
+        s_securityHaveChecked = !needRecheck;
         s_isRequestSecurity = haveCheck;
         isInChek = NO;
         if ([arrCheckCompletion count] > 0) {
@@ -162,6 +162,7 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
     AFHTTPSessionManager *manager = [AFHTTPSessionManager manager];
     
     [manager.requestSerializer setTimeoutInterval:REQUEST_TIMEOUT];
+    manager.requestSerializer.cachePolicy = NSURLRequestReloadIgnoringLocalCacheData;
     
     // 证书信任统一处理
     [manager setSessionDidReceiveAuthenticationChallengeBlock:^NSURLSessionAuthChallengeDisposition(NSURLSession * _Nonnull session, NSURLAuthenticationChallenge * _Nonnull challenge, NSURLCredential *__autoreleasing  _Nullable * _Nullable credential) {
@@ -170,9 +171,15 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
     }];
     
     [manager GET:serverUrl parameters:nil progress:nil success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
-        requestRespond();
+        requestRespond(NO);
     } failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
-        requestRespond();
+        if (task
+            && [task.response isKindOfClass:[NSHTTPURLResponse class]]
+            && [(NSHTTPURLResponse *)task.response statusCode] >= 200) {
+            requestRespond(NO);
+        } else {
+            requestRespond(YES);
+        }
     }];
     return NO;
 #endif
