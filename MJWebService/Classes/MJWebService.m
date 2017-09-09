@@ -148,7 +148,7 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
     
     void(^requestRespond)(BOOL) = ^(BOOL needRecheck) {
         s_securityHaveChecked = !needRecheck;
-        s_isRequestSecurity = haveCheck;
+        s_isRequestSecurity = needRecheck?NO:haveCheck;
         isInChek = NO;
         if ([arrCheckCompletion count] > 0) {
             for (void(^aCompletion)(BOOL isSucceed) in arrCheckCompletion) {
