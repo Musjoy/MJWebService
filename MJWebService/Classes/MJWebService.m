@@ -147,16 +147,18 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
     __block BOOL haveCheck = NO;
     
     void(^requestRespond)(BOOL) = ^(BOOL needRecheck) {
-        s_securityHaveChecked = !needRecheck;
+        s_securityHaveChecked = YES;
         s_isRequestSecurity = needRecheck?NO:haveCheck;
         isInChek = NO;
-        if ([arrCheckCompletion count] > 0) {
-            for (void(^aCompletion)(BOOL isSucceed) in arrCheckCompletion) {
+        NSArray *arrCompletion = [arrCheckCompletion copy];
+        if ([arrCompletion count] > 0) {
+            for (void(^aCompletion)(BOOL isSucceed) in arrCompletion) {
                 aCompletion(s_isRequestSecurity);
             }
             [arrCheckCompletion removeAllObjects];
         }
         completion(s_isRequestSecurity);
+        s_securityHaveChecked = !needRecheck;
     };
     
     AFHTTPSessionManager *manager = [AFHTTPSessionManager manager];
