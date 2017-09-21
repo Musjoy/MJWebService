@@ -12,6 +12,15 @@
 #define FILE_NAME_CER_TRUST_LIST    @"cer_trust_list"
 #endif
 
+// 证书安全校验域名
+#ifndef kCheckSecurityBaseHost
+#ifdef kBaseHost
+#define kCheckSecurityBaseHost  kBaseHost
+#elif defined(kServerBaseHost)
+#define kCheckSecurityBaseHost  kServerBaseHost
+#endif
+#endif
+
 #ifndef SERVER_CER_TRUST_LIST
 /// 默认证书信任列表
 #define SERVER_CER_TRUST_LIST       @[\
@@ -27,7 +36,7 @@
 ]
 #endif
 
-// 定义该宏定义来开启安全请求
+// 定义该宏定义来开启安全请求，默认开启
 #if defined(FUN_NEED_SECURITY_REQUEST) && !FUN_NEED_SECURITY_REQUEST
 #undef FUN_NEED_SECURITY_REQUEST
 #else

@@ -117,17 +117,19 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
 
 #ifdef FUN_NEED_SECURITY_REQUEST
 // 坚持请求是否安全，返回也是表示安装可以继续操作，返回NO，表示未检查完成或不安全
-+ (BOOL)checkRequestSecurityCompletion:(void(^)(BOOL isSucceed))completion
++ (BOOL)checkRequestSecurityCompletion:(void(^)(BOOL isSucceed, NSError *err))completion
 {
-#ifdef kServerBaseHost
-    NSString *serverUrl = kServerBaseHost;
+#ifdef kCheckSecurityBaseHost
+    NSString *serverUrl = kCheckSecurityBaseHost;
     if (![serverUrl hasPrefix:@"https"]) {
         return YES;
     }
+    
+    static NSError *s_errCheck = nil;
     if (s_securityHaveChecked) {
         if (!s_isRequestSecurity) {
             // 这里不回掉的话将没有地方回掉
-            completion(s_isRequestSecurity);
+            completion(s_isRequestSecurity, s_errCheck);
         }
         return s_isRequestSecurity;
     }
@@ -146,18 +148,22 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
     
     __block BOOL haveCheck = NO;
     
-    void(^requestRespond)(BOOL) = ^(BOOL needRecheck) {
+    void(^requestRespond)(BOOL, NSError *) = ^(BOOL needRecheck, NSError *err) {
         s_securityHaveChecked = YES;
         s_isRequestSecurity = needRecheck?NO:haveCheck;
+        if (!s_isRequestSecurity && err == nil) {
+            err = [self errorForbidden];
+        }
+        s_errCheck = err;
         isInChek = NO;
         NSArray *arrCompletion = [arrCheckCompletion copy];
         if ([arrCompletion count] > 0) {
-            for (void(^aCompletion)(BOOL isSucceed) in arrCompletion) {
-                aCompletion(s_isRequestSecurity);
+            for (void(^aCompletion)(BOOL, NSError *) in arrCompletion) {
+                aCompletion(s_isRequestSecurity, err);
             }
             [arrCheckCompletion removeAllObjects];
         }
-        completion(s_isRequestSecurity);
+        completion(s_isRequestSecurity, err);
         s_securityHaveChecked = !needRecheck;
     };
     
@@ -173,14 +179,14 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
     }];
     
     [manager GET:serverUrl parameters:nil progress:nil success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
-        requestRespond(NO);
+        requestRespond(NO, nil);
     } failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
         if (task
             && [task.response isKindOfClass:[NSHTTPURLResponse class]]
             && [(NSHTTPURLResponse *)task.response statusCode] >= 200) {
-            requestRespond(NO);
+            requestRespond(NO, nil);
         } else {
-            requestRespond(YES);
+            requestRespond(YES, error);
         }
     }];
     return NO;
@@ -216,11 +222,11 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
         return;
     }
 #ifdef FUN_NEED_SECURITY_REQUEST
-    BOOL checkResult = [self checkRequestSecurityCompletion:^(BOOL isSucceed) {
+    BOOL checkResult = [self checkRequestSecurityCompletion:^(BOOL isSucceed, NSError *err) {
         if (isSucceed) {
             [self startGet:serverUrl header:header body:body completion:completion];
         } else {
-            completion ? completion(nil, nil, [self errorForbidden]) : 0;
+            completion ? completion(nil, nil, err) : 0;
         }
     }];
     if (!checkResult) {
@@ -273,11 +279,11 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
         return;
     }
 #ifdef FUN_NEED_SECURITY_REQUEST
-    BOOL checkResult = [self checkRequestSecurityCompletion:^(BOOL isSucceed) {
+    BOOL checkResult = [self checkRequestSecurityCompletion:^(BOOL isSucceed, NSError *err) {
         if (isSucceed) {
             [self startPost:serverUrl header:header body:body completion:completion];
         } else {
-            completion ? completion(nil, nil, [self errorForbidden]) : 0;
+            completion ? completion(nil, nil, err) : 0;
         }
     }];
     if (!checkResult) {
@@ -330,11 +336,11 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
         return;
     }
 #ifdef FUN_NEED_SECURITY_REQUEST
-    BOOL checkResult = [self checkRequestSecurityCompletion:^(BOOL isSucceed) {
+    BOOL checkResult = [self checkRequestSecurityCompletion:^(BOOL isSucceed, NSError *err) {
         if (isSucceed) {
             [self startPut:serverUrl header:header body:body completion:completion];
         } else {
-            completion ? completion(nil, nil, [self errorForbidden]) : 0;
+            completion ? completion(nil, nil, err) : 0;
         }
     }];
     if (!checkResult) {
@@ -387,11 +393,11 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
         return ;
     }
 #ifdef FUN_NEED_SECURITY_REQUEST
-    BOOL checkResult = [self checkRequestSecurityCompletion:^(BOOL isSucceed) {
+    BOOL checkResult = [self checkRequestSecurityCompletion:^(BOOL isSucceed, NSError *err) {
         if (isSucceed) {
             [self startDelete:serverUrl header:header body:body completion:completion];
         } else {
-            completion ? completion(nil, nil, [self errorForbidden]) : 0;
+            completion ? completion(nil, nil, err) : 0;
         }
     }];
     if (!checkResult) {
@@ -448,11 +454,11 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
         return;
     }
 #ifdef FUN_NEED_SECURITY_REQUEST
-    BOOL checkResult = [self checkRequestSecurityCompletion:^(BOOL isSucceed) {
+    BOOL checkResult = [self checkRequestSecurityCompletion:^(BOOL isSucceed, NSError *err) {
         if (isSucceed) {
             [self startUploadFiles:serverUrl header:header body:body files:files completion:completion];
         } else {
-            completion ? completion(nil, nil, [self errorForbidden]) : 0;
+            completion ? completion(nil, nil, err) : 0;
         }
     }];
     if (!checkResult) {
@@ -528,11 +534,11 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
         return;
     }
 #ifdef FUN_NEED_SECURITY_REQUEST
-    BOOL checkResult = [self checkRequestSecurityCompletion:^(BOOL isSucceed) {
+    BOOL checkResult = [self checkRequestSecurityCompletion:^(BOOL isSucceed, NSError *err) {
         if (isSucceed) {
             [self startDownload:remotePath header:header body:body withSavePath:localPath completion:completion progressBlock:progressBlock];
         } else {
-            completion ? completion(nil, nil, [self errorForbidden]) : 0;
+            completion ? completion(nil, nil, err) : 0;
         }
     }];
     if (!checkResult) {
