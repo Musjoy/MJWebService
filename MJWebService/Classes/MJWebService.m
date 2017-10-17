@@ -23,13 +23,6 @@ static MJReachabilityStatus g_reachableState = MJReachabilityStatusUnknown;
 
 static MJURLSessionDidReceiveChallengeBlock s_sessionDidReceiveChallengeBlock = NULL;
 
-#if defined(FUN_NEED_SECURITY_REQUEST) && defined(kServerBaseHost)
-// 请求安全性是否坚持
-static BOOL s_securityHaveChecked = NO;
-// 请求是否安全
-static BOOL s_isRequestSecurity = NO;
-#endif
-
 NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
     switch (status) {
         case MJReachabilityStatusNotReachable:
@@ -117,54 +110,76 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
 
 #ifdef FUN_NEED_SECURITY_REQUEST
 // 坚持请求是否安全，返回也是表示安装可以继续操作，返回NO，表示未检查完成或不安全
-+ (BOOL)checkRequestSecurityCompletion:(void(^)(BOOL isSucceed, NSError *err))completion
++ (BOOL)checkRequestSecurity:(NSString *)serverUrl completion:(void(^)(BOOL isSucceed, NSError *err))completion
 {
-#ifdef kCheckSecurityBaseHost
-    NSString *serverUrl = kCheckSecurityBaseHost;
+    if (serverUrl.length == 0) {
+        return NO;
+    }
     if (![serverUrl hasPrefix:@"https"]) {
         return YES;
     }
+    static NSMutableDictionary *s_dicHostCheckResult = nil;
+    if (s_dicHostCheckResult == nil) {
+        s_dicHostCheckResult = [[NSMutableDictionary alloc] init];
+    }
+    NSURL *url = [NSURL URLWithString:serverUrl];
+    NSString *hostUrl = [NSString stringWithFormat:@"%@://%@", url.scheme, url.host];
     
-    static NSError *s_errCheck = nil;
-    if (s_securityHaveChecked) {
-        if (!s_isRequestSecurity) {
-            // 这里不回掉的话将没有地方回掉
-            completion(s_isRequestSecurity, s_errCheck);
+    NSMutableDictionary *curCheckResult = [s_dicHostCheckResult objectForKey:hostUrl];
+    if (curCheckResult) {
+        BOOL securityHaveChecked = [[curCheckResult objectForKey:@"securityHaveChecked"] boolValue];
+        BOOL isRequestSecurity = [[curCheckResult objectForKey:@"isRequestSecurity"] boolValue];
+        if (securityHaveChecked) {
+            if (!isRequestSecurity) {
+                // 这里不回掉的话将没有地方回掉
+                NSError *errCheck = [curCheckResult objectForKey:@"errCheck"];
+                completion(isRequestSecurity, errCheck);
+            }
+            return isRequestSecurity;
         }
-        return s_isRequestSecurity;
+    } else {
+        curCheckResult = [[NSMutableDictionary alloc] init];
+        NSMutableArray *arrCheckCompletion = [[NSMutableArray alloc] init];
+        [curCheckResult setObject:arrCheckCompletion forKey:@"arrCheckCompletion"];
+        [s_dicHostCheckResult setObject:curCheckResult forKey:hostUrl];
     }
     
-    static NSMutableArray *arrCheckCompletion = nil;
-    if (arrCheckCompletion == nil) {
-        arrCheckCompletion = [[NSMutableArray alloc] init];
-    }
+    NSMutableArray *arrCheckCompletion = [curCheckResult objectForKey:@"arrCheckCompletion"];
     
-    static BOOL isInChek = NO;
+    BOOL isInChek = [[curCheckResult objectForKey:@"isInChek"] boolValue];
     if (isInChek) {
         [arrCheckCompletion addObject:completion];
         return NO;
     }
-    isInChek = YES;
+    [curCheckResult setObject:@YES forKey:@"isInChek"];
     
-    __block BOOL haveCheck = NO;
+    [curCheckResult setObject:@NO forKey:@"haveCheck"];
     
     void(^requestRespond)(BOOL, NSError *) = ^(BOOL needRecheck, NSError *err) {
-        s_securityHaveChecked = YES;
-        s_isRequestSecurity = needRecheck?NO:haveCheck;
-        if (!s_isRequestSecurity && err == nil) {
+        BOOL haveCheck = [[curCheckResult objectForKey:@"haveCheck"] boolValue];
+        BOOL securityHaveChecked = YES;
+        BOOL isRequestSecurity = needRecheck?NO:haveCheck;
+        [curCheckResult setObject:[NSNumber numberWithBool:YES] forKey:@"securityHaveChecked"];
+        [curCheckResult setObject:[NSNumber numberWithBool:isRequestSecurity] forKey:@"isRequestSecurity"];
+        if (!isRequestSecurity && err == nil) {
             err = [self errorForbidden];
         }
-        s_errCheck = err;
-        isInChek = NO;
+        if (err) {
+            [curCheckResult setObject:err forKey:@"errCheck"];
+        } else {
+            [curCheckResult removeObjectForKey:@"errCheck"];
+        }
+        [curCheckResult setObject:@NO forKey:@"isInChek"];
         NSArray *arrCompletion = [arrCheckCompletion copy];
         if ([arrCompletion count] > 0) {
             for (void(^aCompletion)(BOOL, NSError *) in arrCompletion) {
-                aCompletion(s_isRequestSecurity, err);
+                aCompletion(isRequestSecurity, err);
             }
             [arrCheckCompletion removeAllObjects];
         }
-        completion(s_isRequestSecurity, err);
-        s_securityHaveChecked = !needRecheck;
+        completion(isRequestSecurity, err);
+        securityHaveChecked = !needRecheck;
+        [curCheckResult setObject:[NSNumber numberWithBool:securityHaveChecked] forKey:@"securityHaveChecked"];
     };
     
     AFHTTPSessionManager *manager = [AFHTTPSessionManager manager];
@@ -174,11 +189,11 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
     
     // 证书信任统一处理
     [manager setSessionDidReceiveAuthenticationChallengeBlock:^NSURLSessionAuthChallengeDisposition(NSURLSession * _Nonnull session, NSURLAuthenticationChallenge * _Nonnull challenge, NSURLCredential *__autoreleasing  _Nullable * _Nullable credential) {
-        haveCheck = YES;
+        [curCheckResult setObject:@YES forKey:@"haveCheck"];
         return s_sessionDidReceiveChallengeBlock(session, challenge, credential);
     }];
     
-    [manager GET:serverUrl parameters:nil progress:nil success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
+    [manager GET:hostUrl parameters:nil progress:nil success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
         requestRespond(NO, nil);
     } failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
         if (task
@@ -190,8 +205,6 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
         }
     }];
     return NO;
-#endif
-    return YES;
 }
 #endif
 
@@ -222,7 +235,7 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
         return;
     }
 #ifdef FUN_NEED_SECURITY_REQUEST
-    BOOL checkResult = [self checkRequestSecurityCompletion:^(BOOL isSucceed, NSError *err) {
+    BOOL checkResult = [self checkRequestSecurity:serverUrl completion:^(BOOL isSucceed, NSError *err) {
         if (isSucceed) {
             [self startGet:serverUrl header:header body:body completion:completion];
         } else {
@@ -279,7 +292,7 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
         return;
     }
 #ifdef FUN_NEED_SECURITY_REQUEST
-    BOOL checkResult = [self checkRequestSecurityCompletion:^(BOOL isSucceed, NSError *err) {
+    BOOL checkResult = [self checkRequestSecurity:serverUrl completion:^(BOOL isSucceed, NSError *err) {
         if (isSucceed) {
             [self startPost:serverUrl header:header body:body completion:completion];
         } else {
@@ -336,7 +349,7 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
         return;
     }
 #ifdef FUN_NEED_SECURITY_REQUEST
-    BOOL checkResult = [self checkRequestSecurityCompletion:^(BOOL isSucceed, NSError *err) {
+    BOOL checkResult = [self checkRequestSecurity:serverUrl completion:^(BOOL isSucceed, NSError *err) {
         if (isSucceed) {
             [self startPut:serverUrl header:header body:body completion:completion];
         } else {
@@ -393,7 +406,7 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
         return ;
     }
 #ifdef FUN_NEED_SECURITY_REQUEST
-    BOOL checkResult = [self checkRequestSecurityCompletion:^(BOOL isSucceed, NSError *err) {
+    BOOL checkResult = [self checkRequestSecurity:serverUrl completion:^(BOOL isSucceed, NSError *err) {
         if (isSucceed) {
             [self startDelete:serverUrl header:header body:body completion:completion];
         } else {
@@ -454,7 +467,7 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
         return;
     }
 #ifdef FUN_NEED_SECURITY_REQUEST
-    BOOL checkResult = [self checkRequestSecurityCompletion:^(BOOL isSucceed, NSError *err) {
+    BOOL checkResult = [self checkRequestSecurity:serverUrl completion:^(BOOL isSucceed, NSError *err) {
         if (isSucceed) {
             [self startUploadFiles:serverUrl header:header body:body files:files completion:completion];
         } else {
@@ -534,7 +547,7 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
         return;
     }
 #ifdef FUN_NEED_SECURITY_REQUEST
-    BOOL checkResult = [self checkRequestSecurityCompletion:^(BOOL isSucceed, NSError *err) {
+    BOOL checkResult = [self checkRequestSecurity:remotePath completion:^(BOOL isSucceed, NSError *err) {
         if (isSucceed) {
             [self startDownload:remotePath header:header body:body withSavePath:localPath completion:completion progressBlock:progressBlock];
         } else {
