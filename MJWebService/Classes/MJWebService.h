@@ -23,7 +23,8 @@
 @"GeoTrust Primary Certification Authority",\
 @"StartCom Certification Authority",\
 @"Go Daddy Root Certificate Authority - G2",\
-@"Baltimore CyberTrust Root"\
+@"Baltimore CyberTrust Root",\
+@"DigiCert Global Root CA"\
 ]
 #endif
 
