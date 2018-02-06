@@ -24,7 +24,8 @@
 @"StartCom Certification Authority",\
 @"Go Daddy Root Certificate Authority - G2",\
 @"Baltimore CyberTrust Root",\
-@"DigiCert Global Root CA"\
+@"DigiCert Global Root CA",\
+@"COMODO ECC Certification Authority"\
 ]
 #endif
 
