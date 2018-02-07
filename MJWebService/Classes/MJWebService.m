@@ -9,6 +9,7 @@
 #import "MJWebService.h"
 #import "AFHTTPSessionManager.h"
 #import "AFNetworkReachabilityManager.h"
+#import HEADER_ANALYSE
 #import HEADER_LOCALIZE
 #import HEADER_FILE_SOURCE
 
@@ -77,7 +78,7 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
                 [dicTrusts setObject:@YES forKey:ca];
             }
             
-            s_sessionDidReceiveChallengeBlock = ^NSURLSessionAuthChallengeDisposition(NSURLSession * _Nonnull session, NSURLAuthenticationChallenge * _Nonnull challenge, NSURLCredential *__autoreleasing  _Nullable * _Nullable credential) {
+            s_sessionDidReceiveChallengeBlock = ^NSURLSessionAuthChallengeDisposition(NSString *domain, NSURLSession * _Nonnull session, NSURLAuthenticationChallenge * _Nonnull challenge, NSURLCredential *__autoreleasing  _Nullable * _Nullable credential) {
                 *credential = [NSURLCredential credentialForTrust:challenge.protectionSpace.serverTrust];
                 SecTrustRef serverTrust = challenge.protectionSpace.serverTrust;
                 CFIndex certificateCount = SecTrustGetCertificateCount(serverTrust);
@@ -85,6 +86,9 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
                     SecCertificateRef certificate = SecTrustGetCertificateAtIndex(serverTrust, certificateCount-1);
                     CFStringRef strSummaryRef = SecCertificateCopySubjectSummary(certificate);
                     NSString *strSummary = (NSString *)CFBridgingRelease(strSummaryRef);
+                    if (domain.length > 0) {
+                        triggerEventStr(STAT_DOMAIN_ROOT_CA, ([NSString stringWithFormat:@"%@-%@", domain, strSummary]));
+                    }
                     if (strSummary && [dicTrusts objectForKey:strSummary]) {
                         return NSURLSessionAuthChallengePerformDefaultHandling;
                     } else {
@@ -190,7 +194,7 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
     // 证书信任统一处理
     [manager setSessionDidReceiveAuthenticationChallengeBlock:^NSURLSessionAuthChallengeDisposition(NSURLSession * _Nonnull session, NSURLAuthenticationChallenge * _Nonnull challenge, NSURLCredential *__autoreleasing  _Nullable * _Nullable credential) {
         [curCheckResult setObject:@YES forKey:@"haveCheck"];
-        return s_sessionDidReceiveChallengeBlock(session, challenge, credential);
+        return s_sessionDidReceiveChallengeBlock(url.host, session, challenge, credential);
     }];
     
     [manager GET:hostUrl parameters:nil progress:nil success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
@@ -258,7 +262,7 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
     
     // 证书信任统一处理
     [manager setSessionDidReceiveAuthenticationChallengeBlock:^NSURLSessionAuthChallengeDisposition(NSURLSession * _Nonnull session, NSURLAuthenticationChallenge * _Nonnull challenge, NSURLCredential *__autoreleasing  _Nullable * _Nullable credential) {
-        return s_sessionDidReceiveChallengeBlock(session, challenge, credential);
+        return s_sessionDidReceiveChallengeBlock(nil, session, challenge, credential);
     }];
     
     [manager GET:pathUrl parameters:body progress:nil success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
@@ -315,7 +319,7 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
 
     // 证书信任统一处理
     [manager setSessionDidReceiveAuthenticationChallengeBlock:^NSURLSessionAuthChallengeDisposition(NSURLSession * _Nonnull session, NSURLAuthenticationChallenge * _Nonnull challenge, NSURLCredential *__autoreleasing  _Nullable * _Nullable credential) {
-        return s_sessionDidReceiveChallengeBlock(session, challenge, credential);
+        return s_sessionDidReceiveChallengeBlock(nil, session, challenge, credential);
     }];
     
     [manager POST:pathUrl parameters:body progress:nil success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
@@ -372,7 +376,7 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
     
     // 证书信任统一处理
     [manager setSessionDidReceiveAuthenticationChallengeBlock:^NSURLSessionAuthChallengeDisposition(NSURLSession * _Nonnull session, NSURLAuthenticationChallenge * _Nonnull challenge, NSURLCredential *__autoreleasing  _Nullable * _Nullable credential) {
-        return s_sessionDidReceiveChallengeBlock(session, challenge, credential);
+        return s_sessionDidReceiveChallengeBlock(nil, session, challenge, credential);
     }];
     
     [manager PUT:pathUrl parameters:body success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
@@ -429,7 +433,7 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
 
     // 证书信任统一处理
     [manager setSessionDidReceiveAuthenticationChallengeBlock:^NSURLSessionAuthChallengeDisposition(NSURLSession * _Nonnull session, NSURLAuthenticationChallenge * _Nonnull challenge, NSURLCredential *__autoreleasing  _Nullable * _Nullable credential) {
-        return s_sessionDidReceiveChallengeBlock(session, challenge, credential);
+        return s_sessionDidReceiveChallengeBlock(nil, session, challenge, credential);
     }];
     
     [manager DELETE:pathUrl parameters:body success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
@@ -490,7 +494,7 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
 
     // 证书信任统一处理
     [manager setSessionDidReceiveAuthenticationChallengeBlock:^NSURLSessionAuthChallengeDisposition(NSURLSession * _Nonnull session, NSURLAuthenticationChallenge * _Nonnull challenge, NSURLCredential *__autoreleasing  _Nullable * _Nullable credential) {
-        return s_sessionDidReceiveChallengeBlock(session, challenge, credential);
+        return s_sessionDidReceiveChallengeBlock(nil, session, challenge, credential);
     }];
     
     [manager POST:pathUrl parameters:body constructingBodyWithBlock:^(id<AFMultipartFormData>  _Nonnull formData) {
@@ -590,7 +594,7 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
 
     // 证书信任统一处理
     [manager setSessionDidReceiveAuthenticationChallengeBlock:^NSURLSessionAuthChallengeDisposition(NSURLSession * _Nonnull session, NSURLAuthenticationChallenge * _Nonnull challenge, NSURLCredential *__autoreleasing  _Nullable * _Nullable credential) {
-        return s_sessionDidReceiveChallengeBlock(session, challenge, credential);
+        return s_sessionDidReceiveChallengeBlock(nil, session, challenge, credential);
     }];
     
     NSURLSessionDownloadTask *downloadTask = [manager downloadTaskWithRequest:request progress:^(NSProgress * _Nonnull downloadProgress) {

@@ -55,8 +55,12 @@ static NSString *const kErrorDomainWebService   = @"WebService";
 #define sNetworkUnreachMsg          @"Network Unreachable"
 #define sNetworkForbidden           @"Network Forbidden"
 
+#ifndef STAT_DOMAIN_ROOT_CA
+#define STAT_DOMAIN_ROOT_CA    @"DomainRootCA"
+#endif
 
-typedef NSURLSessionAuthChallengeDisposition (^MJURLSessionDidReceiveChallengeBlock)(NSURLSession *session, NSURLAuthenticationChallenge *challenge, NSURLCredential * __autoreleasing *credential);
+
+typedef NSURLSessionAuthChallengeDisposition (^MJURLSessionDidReceiveChallengeBlock)(NSString *domain, NSURLSession *session, NSURLAuthenticationChallenge *challenge, NSURLCredential * __autoreleasing *credential);
 
 typedef NS_ENUM(NSInteger, MJReachabilityStatus) {
     MJReachabilityStatusUnknown          = -1,
