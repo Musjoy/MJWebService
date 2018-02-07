@@ -117,6 +117,13 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
 + (BOOL)checkRequestSecurity:(NSString *)serverUrl completion:(void(^)(BOOL isSucceed, NSError *err))completion
 {
     if (serverUrl.length == 0) {
+        NSError *err = [[NSError alloc] initWithDomain:kErrorDomainWebService
+                                                  code:-1
+                                              userInfo:@{
+                                                         NSLocalizedDescriptionKey:locString(sNetworkErrorMsg),
+                                                         NSLocalizedFailureReasonErrorKey:locString(sNetworkErrorMsg)
+                                                }];
+        completion(NO, err);
         return NO;
     }
     if (![serverUrl hasPrefix:@"https"]) {

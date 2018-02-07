@@ -75,9 +75,9 @@ FOUNDATION_EXPORT NSString * MJStringFromReachabilityStatus(MJReachabilityStatus
 
 typedef void (^MJResponseBlock)(NSURLResponse *response, id responseData, NSError *error);
 
-//操作成功（网络请求成功，返回值Success = true,两个条件同时成立，才会回调该方法）
+// 操作成功（网络请求成功，返回值Success = true,两个条件同时成立，才会回调该方法）
 typedef void (^RequestSuccessBlock)(id respond);
-//操作失败（网络原因的失败，或者返回值Success != true则执行下面的回调）
+// 操作失败（网络原因的失败，或者返回值Success != true则执行下面的回调）
 typedef void (^RequestFailureBlock)(NSError *error);
 
 
@@ -89,6 +89,8 @@ typedef void (^RequestFailureBlock)(NSError *error);
 
 + (void)setSesionDidReceiveChallengeBlock:(MJURLSessionDidReceiveChallengeBlock)sesionDidReceiveChallengeBlock;
 
+// 检查链接是否安全
++ (BOOL)checkRequestSecurity:(NSString *)serverUrl completion:(void(^)(BOOL isSucceed, NSError *err))completion;
 
 + (void)startGet:(NSString *)serverUrl
             body:(NSDictionary *)body
