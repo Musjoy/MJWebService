@@ -86,6 +86,14 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
                     SecCertificateRef certificate = SecTrustGetCertificateAtIndex(serverTrust, certificateCount-1);
                     CFStringRef strSummaryRef = SecCertificateCopySubjectSummary(certificate);
                     NSString *strSummary = (NSString *)CFBridgingRelease(strSummaryRef);
+                    if ([strSummary isEqualToString:@"AddTrust External CA Root"]) {
+                        // 未知情况导致根证书变更
+                        if (certificateCount > 1) {
+                            certificate = SecTrustGetCertificateAtIndex(serverTrust, certificateCount-2);
+                            strSummaryRef = SecCertificateCopySubjectSummary(certificate);
+                            strSummary = (NSString *)CFBridgingRelease(strSummaryRef);
+                        }
+                    }
                     if (domain.length > 0) {
                         triggerEventStr(STAT_DOMAIN_ROOT_CA, ([NSString stringWithFormat:@"%@-%@", domain, strSummary]));
                     }
