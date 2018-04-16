@@ -36,7 +36,7 @@ Pod::Spec.new do |s|
 
   # s.public_header_files = 'Pod/Classes/**/*.h'
   # s.frameworks = 'Foundation'
-  s.dependency 'AFNetworking/NSURLSession', '~> 3.1.0'
-  s.dependency 'ModuleCapability', '~> 0.1.1'
+  s.dependency 'AFNetworking/NSURLSession', '~> 3'
+  s.dependency 'ModuleCapability', '~> 0.1'
   s.prefix_header_contents = '#import "ModuleCapability.h"'
 end
