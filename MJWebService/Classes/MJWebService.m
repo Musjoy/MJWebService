@@ -7,8 +7,8 @@
 //
 
 #import "MJWebService.h"
-#import "AFHTTPSessionManager.h"
-#import "AFNetworkReachabilityManager.h"
+#import <AFNetworking/AFHTTPSessionManager.h>
+#import <AFNetworking/AFNetworkReachabilityManager.h>
 #import HEADER_ANALYSE
 #import HEADER_LOCALIZE
 #import HEADER_FILE_SOURCE
