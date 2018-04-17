@@ -16,7 +16,7 @@
 
 /* Begin PBXFileReference section */
 		14F429646C892AF91F44CD35 /* LICENSE */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text; name = LICENSE; path = ../LICENSE; sourceTree = "<group>"; };
-		3DBCE9207EFA25524ABA552C /* MJWebService.podspec */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text; name = MJWebService.podspec; path = ../MJWebService.podspec; sourceTree = "<group>"; };
+		3DBCE9207EFA25524ABA552C /* MJWebService.podspec */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text; name = MJWebService.podspec; path = ../MJWebService.podspec; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.ruby; };
 		484FB3FAAB9CA383B3F98DEC /* README.md */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = net.daringfireball.markdown; name = README.md; path = ../README.md; sourceTree = "<group>"; };
 		6003F58D195388D20070C39A /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
 		6003F5AE195388D20070C39A /* MJWebService_Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MJWebService_Tests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
