@@ -24,6 +24,10 @@ static MJReachabilityStatus g_reachableState = MJReachabilityStatusUnknown;
 
 static MJURLSessionDidReceiveChallengeBlock s_sessionDidReceiveChallengeBlock = NULL;
 
+static NSMutableDictionary *s_dicRequest = nil;
+
+static NSMutableDictionary *s_dicHostCheckResult = nil;
+
 NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
     switch (status) {
         case MJReachabilityStatusNotReachable:
@@ -51,6 +55,7 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
 + (void)dataInit
 {
     if (s_hostReach == nil) {
+        
         // 开启网络监听
         g_reachableState = MJReachabilityStatusUnknown;
         s_hostReach = [AFNetworkReachabilityManager sharedManager];
@@ -67,6 +72,12 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
         [s_hostReach startMonitoring];  //开始监听，会启动一个run loop
         g_reachableState = (MJReachabilityStatus)s_hostReach.networkReachabilityStatus;
         
+        // 请求缓存字典
+        if (!s_dicRequest) {
+            s_dicRequest = [[NSMutableDictionary alloc] init];
+        }
+        
+        // 证书验证回调
         if (s_sessionDidReceiveChallengeBlock == NULL) {
             
             NSArray *arrTrustList = getFileData(FILE_NAME_CER_TRUST_LIST);
@@ -115,6 +126,34 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
     return g_reachableState;
 }
 
++ (MJRequestSecurityState)requestSecurityStateOf:(NSString *)serverUrl
+{
+    if (serverUrl.length == 0) {
+        LogError(@"Server url can not be nil");
+        return MJRequestSecurityStateUnknown;
+    }
+    if (![serverUrl hasPrefix:@"https"]) {
+        LogError(@"Server url not start with 'https'");
+        return MJRequestSecurityStateSecure;
+    }
+    if (s_dicHostCheckResult == nil) {
+        s_dicHostCheckResult = [[NSMutableDictionary alloc] init];
+        return MJRequestSecurityStateUnknown;
+    }
+    NSURL *url = [NSURL URLWithString:serverUrl];
+    NSString *hostUrl = [NSString stringWithFormat:@"%@://%@", url.scheme, url.host];
+    
+    NSMutableDictionary *curCheckResult = [s_dicHostCheckResult objectForKey:hostUrl];
+    if (curCheckResult) {
+        BOOL securityHaveChecked = [[curCheckResult objectForKey:@"securityHaveChecked"] boolValue];
+        MJRequestSecurityState securityState = [[curCheckResult objectForKey:@"securityState"] integerValue];
+        if (securityHaveChecked) {
+            return securityState;
+        }
+    }
+    return MJRequestSecurityStateUnknown;
+}
+
 + (void)setSesionDidReceiveChallengeBlock:(MJURLSessionDidReceiveChallengeBlock)sesionDidReceiveChallengeBlock
 {
     s_sessionDidReceiveChallengeBlock = sesionDidReceiveChallengeBlock;
@@ -122,22 +161,26 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
 
 #ifdef FUN_NEED_SECURITY_REQUEST
 // 坚持请求是否安全，返回也是表示安装可以继续操作，返回NO，表示未检查完成或不安全
-+ (BOOL)checkRequestSecurity:(NSString *)serverUrl completion:(void(^)(BOOL isSucceed, NSError *err))completion
++ (NSString *)checkRequestSecurity:(NSString *)serverUrl completion:(void (^)(MJRequestSecurityState, NSError *))completion
 {
+    MJRequestSecurityState securityState = MJRequestSecurityStateUnknown;
     if (serverUrl.length == 0) {
+        LogError(@"Server url can not be nil");
         NSError *err = [[NSError alloc] initWithDomain:kErrorDomainWebService
                                                   code:-1
                                               userInfo:@{
                                                          NSLocalizedDescriptionKey:locString(sNetworkErrorMsg),
                                                          NSLocalizedFailureReasonErrorKey:locString(sNetworkErrorMsg)
                                                 }];
-        completion(NO, err);
-        return NO;
+        completion(securityState, err);
+        return nil;
     }
     if (![serverUrl hasPrefix:@"https"]) {
-        return YES;
+        LogError(@"Server url not start with 'https'");
+        securityState = MJRequestSecurityStateSecure;
+        completion(securityState, nil);
+        return nil;
     }
-    static NSMutableDictionary *s_dicHostCheckResult = nil;
     if (s_dicHostCheckResult == nil) {
         s_dicHostCheckResult = [[NSMutableDictionary alloc] init];
     }
@@ -147,14 +190,16 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
     NSMutableDictionary *curCheckResult = [s_dicHostCheckResult objectForKey:hostUrl];
     if (curCheckResult) {
         BOOL securityHaveChecked = [[curCheckResult objectForKey:@"securityHaveChecked"] boolValue];
-        BOOL isRequestSecurity = [[curCheckResult objectForKey:@"isRequestSecurity"] boolValue];
+        securityState = [[curCheckResult objectForKey:@"securityState"] integerValue];
         if (securityHaveChecked) {
-            if (!isRequestSecurity) {
+            if (securityState != MJRequestSecurityStateSecure) {
                 // 这里不回掉的话将没有地方回掉
                 NSError *errCheck = [curCheckResult objectForKey:@"errCheck"];
-                completion(isRequestSecurity, errCheck);
+                completion(securityState, errCheck);
+            } else {
+                completion(securityState, nil);
             }
-            return isRequestSecurity;
+            return nil;
         }
     } else {
         curCheckResult = [[NSMutableDictionary alloc] init];
@@ -163,24 +208,29 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
         [s_dicHostCheckResult setObject:curCheckResult forKey:hostUrl];
     }
     
+    NSString *requestId = [[NSUUID UUID] UUIDString];
+    [s_dicRequest setObject:completion forKey:requestId];
+    
     NSMutableArray *arrCheckCompletion = [curCheckResult objectForKey:@"arrCheckCompletion"];
     
     BOOL isInChek = [[curCheckResult objectForKey:@"isInChek"] boolValue];
     if (isInChek) {
-        [arrCheckCompletion addObject:completion];
-        return NO;
+        // 这里只用保存请求ID，s_dicRequest 中 已保存了请求回调
+        [arrCheckCompletion addObject:requestId];
+        return requestId;
     }
     [curCheckResult setObject:@YES forKey:@"isInChek"];
     
     [curCheckResult setObject:@NO forKey:@"haveCheck"];
     
     void(^requestRespond)(BOOL, NSError *) = ^(BOOL needRecheck, NSError *err) {
+        // 是否调用证书检查
         BOOL haveCheck = [[curCheckResult objectForKey:@"haveCheck"] boolValue];
         BOOL securityHaveChecked = YES;
-        BOOL isRequestSecurity = needRecheck?NO:haveCheck;
+        MJRequestSecurityState securityState = needRecheck?MJRequestSecurityStateUnknown:(haveCheck?MJRequestSecurityStateSecure:MJRequestSecurityStateUnsafe);
         [curCheckResult setObject:[NSNumber numberWithBool:YES] forKey:@"securityHaveChecked"];
-        [curCheckResult setObject:[NSNumber numberWithBool:isRequestSecurity] forKey:@"isRequestSecurity"];
-        if (!isRequestSecurity && err == nil) {
+        [curCheckResult setObject:[NSNumber numberWithInteger:securityState] forKey:@"securityState"];
+        if (securityState != MJRequestSecurityStateSecure && err == nil) {
             err = [self errorForbidden];
         }
         if (err) {
@@ -191,13 +241,23 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
         [curCheckResult setObject:@NO forKey:@"isInChek"];
         NSArray *arrCompletion = [arrCheckCompletion copy];
         if ([arrCompletion count] > 0) {
-            for (void(^aCompletion)(BOOL, NSError *) in arrCompletion) {
-                aCompletion(isRequestSecurity, err);
+            for (NSString *aRequestId in arrCompletion) {
+                void(^aCompletion)(BOOL, NSError *) = [s_dicRequest objectForKey:aRequestId];
+                if (aCompletion) {
+                    aCompletion(securityState, err);
+                    [s_dicRequest removeObjectForKey:aRequestId];
+                }
             }
             [arrCheckCompletion removeAllObjects];
         }
-        completion(isRequestSecurity, err);
-        securityHaveChecked = !needRecheck;
+        if ([s_dicRequest objectForKey:requestId]) {
+            completion(securityState, err);
+            [s_dicRequest removeObjectForKey:requestId];
+        }
+        if (securityState == MJRequestSecurityStateUnknown) {
+            securityHaveChecked = NO;
+            [curCheckResult removeObjectForKey:@"errCheck"];
+        }
         [curCheckResult setObject:[NSNumber numberWithBool:securityHaveChecked] forKey:@"securityHaveChecked"];
     };
     
@@ -223,49 +283,107 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
             requestRespond(YES, error);
         }
     }];
-    return NO;
+    return requestId;
 }
 #endif
 
+/// 准备开始安全的网络请求
++ (NSString *)prepareForSecurityRequest:(NSString *)serverUrl sucureCompletion:(NSString * (^)(void))completion failCompletion:(MJResponseBlock)failCompletion
+{
+    __block NSString *requestId = nil;
+    NSString *securityRequestId = [self checkRequestSecurity:serverUrl completion:^(MJRequestSecurityState requestSecurityState, NSError *err) {
+        
+        if (requestSecurityState != MJRequestSecurityStateUnknown) {
+            // 该请求安全性已确认，可以直接回调
+            if (requestSecurityState == MJRequestSecurityStateUnsafe) {
+                failCompletion ? failCompletion(nil, nil, [self errorForbidden]) : 0;
+            } else {
+                // 这里开始实际的网络请求调用
+                NSString *aRequestId = completion ? completion() : nil;
+                if (requestId && [s_dicRequest objectForKey:requestId]) {
+                    [s_dicRequest setObject:aRequestId forKey:requestId];
+                } else {
+                    // 当block立即被调用的时候回到这里，或者请求被中途取消
+                    requestId = aRequestId;
+                }
+            }
+            return;
+        }
+        // 这里的unknown 必然是经过网络请求的，不会是立即调用的
+        failCompletion ? failCompletion(nil, nil, err) : 0;
+    }];
+    if (securityRequestId) {
+        requestId = securityRequestId;
+    }
+    return requestId;
+}
+
+#pragma mark - 取消网络请求
+
++ (void)cancelRequestWith:(NSString *)requestId
+{
+    id aRequest = [s_dicRequest objectForKey:requestId];
+    if (aRequest == nil) {
+        return;
+    }
+    
+    // 如果其中包含的是字符串，这里一点是依赖请求的requestId
+    if ([aRequest isKindOfClass:[NSString class]]) {
+        [self cancelRequestWith:requestId];
+    } else if ([aRequest isKindOfClass:[NSURLSessionTask class]]) {
+        [(NSURLSessionTask *)aRequest cancel];
+    } else {
+        void(^aCompletion)(BOOL, NSError *) = aRequest;
+        aCompletion(NO, [self errorCanceled]);
+    }
+    [s_dicRequest removeObjectForKey:requestId];
+}
+
+
 #pragma mark - 发起GET请求
 
-+ (void)startGet:(NSString *)serverUrl
++ (NSString *)startGet:(NSString *)serverUrl
             body:(NSDictionary *)body
       completion:(MJResponseBlock)completion
 {
-    [self startGet:serverUrl header:nil body:body completion:completion];
+    return [self startGet:serverUrl header:nil body:body completion:completion];
 }
 
-+ (void)startGetText:(NSString *)serverUrl
-                body:(NSDictionary *)body
-          completion:(MJResponseBlock)completion
++ (NSString *)startGetText:(NSString *)serverUrl
+                      body:(NSDictionary *)body
+                completion:(MJResponseBlock)completion
 {
-    [self startGet:serverUrl header:@{@"textResponse":@YES} body:body completion:completion];
+    return [self startGet:serverUrl header:@{@"textResponse":@YES} body:body completion:completion];
 }
 
-+ (void)startGet:(NSString *)serverUrl
-          header:(NSDictionary *)header
-            body:(NSDictionary *)body
-      completion:(MJResponseBlock)completion
+
+
++ (NSString *)startGet:(NSString *)serverUrl
+                header:(NSDictionary *)header
+                  body:(NSDictionary *)body
+            completion:(MJResponseBlock)completion
 {
     [self dataInit];
     if (g_reachableState == AFNetworkReachabilityStatusNotReachable) {
         completion ? completion(nil, nil, [self errorOffNet]) : 0;
-        return;
+        return nil;
     }
 #ifdef FUN_NEED_SECURITY_REQUEST
-    BOOL checkResult = [self checkRequestSecurity:serverUrl completion:^(BOOL isSucceed, NSError *err) {
-        if (isSucceed) {
-            [self startGet:serverUrl header:header body:body completion:completion];
-        } else {
-            completion ? completion(nil, nil, err) : 0;
-        }
-    }];
-    if (!checkResult) {
-        return;
-    }
+    NSString *requestId = [self prepareForSecurityRequest:serverUrl sucureCompletion:^NSString *{
+        return [self startExecuteGet:serverUrl header:header body:body completion:completion];
+    } failCompletion:completion];
+    return requestId;
 #endif
-    
+    return [self startExecuteGet:serverUrl header:header body:body completion:completion];
+}
+
+/// 开始执行Get请求，这个方法必须是在确保请求安装的时候调用
++ (NSString *)startExecuteGet:(NSString *)serverUrl
+                       header:(NSDictionary *)header
+                         body:(NSDictionary *)body
+                   completion:(MJResponseBlock)completion
+{
+    NSString *requestId = [[NSUUID UUID] UUIDString];
     // 拼接请求url
     NSString *pathUrl = [serverUrl stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]];
     LogTrace(@"...>>>...requestUrl: %@\n", pathUrl);
@@ -275,54 +393,55 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
     
     [manager.requestSerializer setTimeoutInterval:REQUEST_TIMEOUT];
     
-    // 证书信任统一处理
-    [manager setSessionDidReceiveAuthenticationChallengeBlock:^NSURLSessionAuthChallengeDisposition(NSURLSession * _Nonnull session, NSURLAuthenticationChallenge * _Nonnull challenge, NSURLCredential *__autoreleasing  _Nullable * _Nullable credential) {
-        return s_sessionDidReceiveChallengeBlock(nil, session, challenge, credential);
-    }];
-    
-    [manager GET:pathUrl parameters:body progress:nil success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
+    NSURLSessionDataTask *dataTask = [manager GET:pathUrl parameters:body progress:nil success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
         // 请求成功
         LogDebug(@"...>>>...receiveData = %@", responseObject);
         completion ? completion(task.response, responseObject, nil) : 0;
+        [s_dicRequest removeObjectForKey:requestId];
     } failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
         // 请求失败
         LogError(@"...>>>...Network error: %@ %@\n", serverUrl, error.localizedDescription);
         completion ? completion(task.response, nil, error) : 0;
+        [s_dicRequest removeObjectForKey:requestId];
     }];
+    [s_dicRequest setObject:dataTask forKey:requestId];
+    return requestId;
 }
 
 #pragma mark - 发起POST请求
 
-+ (void)startPost:(NSString *)serverUrl
-             body:(NSDictionary *)body
-       completion:(MJResponseBlock)completion
++ (NSString *)startPost:(NSString *)serverUrl
+                   body:(NSDictionary *)body
+             completion:(MJResponseBlock)completion
 {
-    [self startPost:serverUrl header:nil body:body completion:completion];
+    return [self startPost:serverUrl header:nil body:body completion:completion];
 }
 
-+ (void)startPost:(NSString *)serverUrl
-           header:(NSDictionary *)header
-             body:(NSDictionary *)body
-       completion:(MJResponseBlock)completion
++ (NSString *)startPost:(NSString *)serverUrl
+                 header:(NSDictionary *)header
+                   body:(NSDictionary *)body
+             completion:(MJResponseBlock)completion
 {
     [self dataInit];
     if (g_reachableState == AFNetworkReachabilityStatusNotReachable) {
         completion ? completion(nil, nil, [self errorOffNet]) : 0;
-        return;
+        return nil;
     }
 #ifdef FUN_NEED_SECURITY_REQUEST
-    BOOL checkResult = [self checkRequestSecurity:serverUrl completion:^(BOOL isSucceed, NSError *err) {
-        if (isSucceed) {
-            [self startPost:serverUrl header:header body:body completion:completion];
-        } else {
-            completion ? completion(nil, nil, err) : 0;
-        }
-    }];
-    if (!checkResult) {
-        return;
-    }
+    NSString *requestId = [self prepareForSecurityRequest:serverUrl sucureCompletion:^NSString *{
+        return [self startExecutePost:serverUrl header:header body:body completion:completion];
+    } failCompletion:completion];
+    return requestId;
 #endif
-    
+    return [self startExecutePost:serverUrl header:header body:body completion:completion];
+}
+
++ (NSString *)startExecutePost:(NSString *)serverUrl
+                        header:(NSDictionary *)header
+                          body:(NSDictionary *)body
+                    completion:(MJResponseBlock)completion
+{
+    NSString *requestId = [[NSUUID UUID] UUIDString];
     // 拼接请求url
     NSString *pathUrl = serverUrl;
     LogTrace(@"...>>>...requestUrl: %@\n", pathUrl);
@@ -331,55 +450,56 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
     AFHTTPSessionManager *manager = [self managerWithHeader:header];
     
     [manager.requestSerializer setTimeoutInterval:REQUEST_TIMEOUT];
-
-    // 证书信任统一处理
-    [manager setSessionDidReceiveAuthenticationChallengeBlock:^NSURLSessionAuthChallengeDisposition(NSURLSession * _Nonnull session, NSURLAuthenticationChallenge * _Nonnull challenge, NSURLCredential *__autoreleasing  _Nullable * _Nullable credential) {
-        return s_sessionDidReceiveChallengeBlock(nil, session, challenge, credential);
-    }];
     
-    [manager POST:pathUrl parameters:body progress:nil success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
+    NSURLSessionDataTask *dataTask = [manager POST:pathUrl parameters:body progress:nil success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
         // 请求成功
         LogDebug(@"...>>>...receiveData = %@", responseObject);
         completion ? completion(task.response, responseObject, nil) : 0;
+        [s_dicRequest removeObjectForKey:requestId];
     } failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
         // 请求失败
         LogError(@"...>>>...Network error: %@ %@\n", serverUrl, error.localizedDescription);
         completion ? completion(task.response, nil, error) : 0;
+        [s_dicRequest removeObjectForKey:requestId];
     }];
+    [s_dicRequest setObject:dataTask forKey:requestId];
+    return requestId;
 }
 
 #pragma mark - 发起Put请求
 
-+ (void)startPut:(NSString *)serverUrl
-            body:(NSDictionary *)body
-      completion:(MJResponseBlock)completion
++ (NSString *)startPut:(NSString *)serverUrl
+                  body:(NSDictionary *)body
+            completion:(MJResponseBlock)completion
 {
-    [self startPut:serverUrl header:nil body:body completion:completion];
+    return [self startPut:serverUrl header:nil body:body completion:completion];
 }
 
-+ (void)startPut:(NSString *)serverUrl
-          header:(NSDictionary *)header
-            body:(NSDictionary *)body
-      completion:(MJResponseBlock)completion
++ (NSString *)startPut:(NSString *)serverUrl
+                header:(NSDictionary *)header
+                  body:(NSDictionary *)body
+            completion:(MJResponseBlock)completion
 {
     [self dataInit];
     if (g_reachableState == AFNetworkReachabilityStatusNotReachable) {
         completion ? completion(nil, nil, [self errorOffNet]) : 0;
-        return;
+        return nil;
     }
 #ifdef FUN_NEED_SECURITY_REQUEST
-    BOOL checkResult = [self checkRequestSecurity:serverUrl completion:^(BOOL isSucceed, NSError *err) {
-        if (isSucceed) {
-            [self startPut:serverUrl header:header body:body completion:completion];
-        } else {
-            completion ? completion(nil, nil, err) : 0;
-        }
-    }];
-    if (!checkResult) {
-        return;
-    }
+    NSString *requestId = [self prepareForSecurityRequest:serverUrl sucureCompletion:^NSString *{
+        return [self startExecutPut:serverUrl header:header body:body completion:completion];
+    } failCompletion:completion];
+    return requestId;
 #endif
-    
+    return [self startExecutPut:serverUrl header:header body:body completion:completion];
+}
+
++ (NSString *)startExecutPut:(NSString *)serverUrl
+                      header:(NSDictionary *)header
+                        body:(NSDictionary *)body
+                  completion:(MJResponseBlock)completion
+{
+    NSString *requestId = [[NSUUID UUID] UUIDString];
     // 拼接请求url
     NSString *pathUrl = serverUrl;
     LogTrace(@"...>>>...requestUrl: %@\n", pathUrl);
@@ -389,54 +509,55 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
     
     [manager.requestSerializer setTimeoutInterval:REQUEST_TIMEOUT];
     
-    // 证书信任统一处理
-    [manager setSessionDidReceiveAuthenticationChallengeBlock:^NSURLSessionAuthChallengeDisposition(NSURLSession * _Nonnull session, NSURLAuthenticationChallenge * _Nonnull challenge, NSURLCredential *__autoreleasing  _Nullable * _Nullable credential) {
-        return s_sessionDidReceiveChallengeBlock(nil, session, challenge, credential);
-    }];
-    
-    [manager PUT:pathUrl parameters:body success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
+    NSURLSessionDataTask *dataTask = [manager PUT:pathUrl parameters:body success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
         // 请求成功
         LogDebug(@"...>>>...receiveData = %@", responseObject);
         completion ? completion(task.response, responseObject, nil) : 0;
+        [s_dicRequest removeObjectForKey:requestId];
     } failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
         // 请求失败
         LogError(@"...>>>...Network error: %@ %@\n", serverUrl, error.localizedDescription);
         completion ? completion(task.response, nil, error) : 0;
+        [s_dicRequest removeObjectForKey:requestId];
     }];
+    [s_dicRequest setObject:dataTask forKey:requestId];
+    return requestId;
 }
 
 #pragma mark - 发起Delete请求
 
-+ (void)startDelete:(NSString *)serverUrl
-               body:(NSDictionary *)body
-         completion:(MJResponseBlock)completion
++ (NSString *)startDelete:(NSString *)serverUrl
+                     body:(NSDictionary *)body
+               completion:(MJResponseBlock)completion
 {
-    [self startDelete:serverUrl header:nil body:body completion:completion];
+    return [self startDelete:serverUrl header:nil body:body completion:completion];
 }
 
-+ (void)startDelete:(NSString *)serverUrl
-             header:(NSDictionary *)header
-               body:(NSDictionary *)body
-         completion:(MJResponseBlock)completion
++ (NSString *)startDelete:(NSString *)serverUrl
+                   header:(NSDictionary *)header
+                     body:(NSDictionary *)body
+               completion:(MJResponseBlock)completion
 {
     [self dataInit];
     if (g_reachableState == AFNetworkReachabilityStatusNotReachable) {
         completion ? completion(nil, nil, [self errorOffNet]) : 0;
-        return ;
+        return nil;
     }
 #ifdef FUN_NEED_SECURITY_REQUEST
-    BOOL checkResult = [self checkRequestSecurity:serverUrl completion:^(BOOL isSucceed, NSError *err) {
-        if (isSucceed) {
-            [self startDelete:serverUrl header:header body:body completion:completion];
-        } else {
-            completion ? completion(nil, nil, err) : 0;
-        }
-    }];
-    if (!checkResult) {
-        return;
-    }
+    NSString *requestId = [self prepareForSecurityRequest:serverUrl sucureCompletion:^NSString *{
+        return [self startExecuteDelete:serverUrl header:header body:body completion:completion];
+    } failCompletion:completion];
+    return requestId;
 #endif
-    
+    return [self startExecuteDelete:serverUrl header:header body:body completion:completion];
+}
+
++ (NSString *)startExecuteDelete:(NSString *)serverUrl
+                          header:(NSDictionary *)header
+                            body:(NSDictionary *)body
+                      completion:(MJResponseBlock)completion
+{
+    NSString *requestId = [[NSUUID UUID] UUIDString];
     // 拼接请求url
     NSString *pathUrl = serverUrl;
     LogTrace(@"...>>>...requestUrl: %@\n", pathUrl);
@@ -445,36 +566,36 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
     AFHTTPSessionManager *manager = [self managerWithHeader:header];
     
     [manager.requestSerializer setTimeoutInterval:REQUEST_TIMEOUT];
-
-    // 证书信任统一处理
-    [manager setSessionDidReceiveAuthenticationChallengeBlock:^NSURLSessionAuthChallengeDisposition(NSURLSession * _Nonnull session, NSURLAuthenticationChallenge * _Nonnull challenge, NSURLCredential *__autoreleasing  _Nullable * _Nullable credential) {
-        return s_sessionDidReceiveChallengeBlock(nil, session, challenge, credential);
-    }];
     
-    [manager DELETE:pathUrl parameters:body success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
+    NSURLSessionDataTask *dataTask = [manager DELETE:pathUrl parameters:body success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
         // 请求成功
         LogDebug(@"...>>>...receiveData = %@", responseObject);
         completion ? completion(task.response, responseObject, nil) : 0;
+        [s_dicRequest removeObjectForKey:requestId];
     } failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
         // 请求失败
         LogError(@"...>>>...Network error: %@ %@\n", serverUrl, error.localizedDescription);
         completion ? completion(task.response, nil, error) : 0;
+        [s_dicRequest removeObjectForKey:requestId];
     }];
+    [s_dicRequest setObject:dataTask forKey:requestId];
+    return requestId;
 }
+
 
 
 #pragma mark - 发起Upload请求
 
 /** 多文件上传 */
-+ (void)startUploadFiles:(NSString *)serverUrl
++ (NSString *)startUploadFiles:(NSString *)serverUrl
                     body:(NSDictionary *)body
                    files:(NSArray *)files
               completion:(MJResponseBlock)completion
 {
-    [self startUploadFiles:serverUrl header:nil body:body files:files completion:completion];
+    return [self startUploadFiles:serverUrl header:nil body:body files:files completion:completion];
 }
 
-+ (void)startUploadFiles:(NSString *)serverUrl
++ (NSString *)startUploadFiles:(NSString *)serverUrl
                   header:(NSDictionary *)header
                     body:(NSDictionary *)body
                    files:(NSArray *)files
@@ -483,21 +604,24 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
     [self dataInit];
     if (g_reachableState == AFNetworkReachabilityStatusNotReachable) {
         completion ? completion(nil, nil, [self errorOffNet]) : 0;
-        return;
+        return nil;
     }
 #ifdef FUN_NEED_SECURITY_REQUEST
-    BOOL checkResult = [self checkRequestSecurity:serverUrl completion:^(BOOL isSucceed, NSError *err) {
-        if (isSucceed) {
-            [self startUploadFiles:serverUrl header:header body:body files:files completion:completion];
-        } else {
-            completion ? completion(nil, nil, err) : 0;
-        }
-    }];
-    if (!checkResult) {
-        return;
-    }
+    NSString *requestId = [self prepareForSecurityRequest:serverUrl sucureCompletion:^NSString *{
+        return [self startExecuteUploadFiles:serverUrl header:header body:body files:files completion:completion];
+    } failCompletion:completion];
+    return requestId;
 #endif
-    
+    return [self startExecuteUploadFiles:serverUrl header:header body:body files:files completion:completion];
+}
+
++ (NSString *)startExecuteUploadFiles:(NSString *)serverUrl
+                               header:(NSDictionary *)header
+                                 body:(NSDictionary *)body
+                                files:(NSArray *)files
+                           completion:(MJResponseBlock)completion
+{
+    NSString *requestId = [[NSUUID UUID] UUIDString];
     // 拼接请求url
     NSString *pathUrl = serverUrl;
     LogTrace(@"...>>>...requestUrl: %@\n", pathUrl);
@@ -506,13 +630,8 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
     AFHTTPSessionManager *manager = [self managerWithHeader:header];
     
     [manager.requestSerializer setTimeoutInterval:UPLOAD_TIMEOUT];
-
-    // 证书信任统一处理
-    [manager setSessionDidReceiveAuthenticationChallengeBlock:^NSURLSessionAuthChallengeDisposition(NSURLSession * _Nonnull session, NSURLAuthenticationChallenge * _Nonnull challenge, NSURLCredential *__autoreleasing  _Nullable * _Nullable credential) {
-        return s_sessionDidReceiveChallengeBlock(nil, session, challenge, credential);
-    }];
     
-    [manager POST:pathUrl parameters:body constructingBodyWithBlock:^(id<AFMultipartFormData>  _Nonnull formData) {
+    NSURLSessionDataTask *dataTask = [manager POST:pathUrl parameters:body constructingBodyWithBlock:^(id<AFMultipartFormData>  _Nonnull formData) {
         for (NSString *filePath in files) {
             LogInfo(@"本地文件全路径:%@", filePath);
             NSData *audioData = [NSData dataWithContentsOfFile:filePath];
@@ -534,50 +653,60 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
         // 请求成功
         LogDebug(@"...>>>...receiveData = %@", responseObject);
         completion ? completion(task.response, responseObject, nil) : 0;
+        [s_dicRequest removeObjectForKey:requestId];
     } failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
         // 请求失败
         LogError(@"...>>>...Network error: %@ %@\n", serverUrl, error.localizedDescription);
         completion ? completion(task.response, nil, error) : 0;
+        [s_dicRequest removeObjectForKey:requestId];
     }];
+    [s_dicRequest setObject:dataTask forKey:requestId];
+    return requestId;
+    
 }
 
 
 #pragma mark - 发起Download请求
 
 /** 单个文件下载 */
-+ (void)startDownload:(NSString *)remotePath
-         withSavePath:(NSString *)localPath
-           completion:(MJResponseBlock)completion
-        progressBlock:(void (^)(NSUInteger bytesRead, long long totalBytesRead, long long totalBytesExpectedToRead))progressBlock
++ (NSString *)startDownload:(NSString *)remotePath
+                               withSavePath:(NSString *)localPath
+                                 completion:(MJResponseBlock)completion
+                              progressBlock:(void (^)(NSUInteger bytesRead, long long totalBytesRead, long long totalBytesExpectedToRead))progressBlock
 {
-    [self startDownload:remotePath header:nil body:nil withSavePath:localPath completion:completion progressBlock:progressBlock];
+    return [self startDownload:remotePath header:nil body:nil withSavePath:localPath completion:completion progressBlock:progressBlock];
 }
 
-+ (void)startDownload:(NSString *)remotePath
-               header:(NSDictionary *)header
-                 body:(NSDictionary *)body
-         withSavePath:(NSString *)localPath
-           completion:(MJResponseBlock)completion
-        progressBlock:(void (^)(NSUInteger bytesRead, long long totalBytesRead, long long totalBytesExpectedToRead))progressBlock
++ (NSString *)startDownload:(NSString *)remotePath
+                                     header:(NSDictionary *)header
+                                       body:(NSDictionary *)body
+                               withSavePath:(NSString *)localPath
+                                 completion:(MJResponseBlock)completion
+                              progressBlock:(void (^)(NSUInteger bytesRead, long long totalBytesRead, long long totalBytesExpectedToRead))progressBlock
 {
     [self dataInit];
     if (g_reachableState == AFNetworkReachabilityStatusNotReachable) {
         completion ? completion(nil, nil, [self errorOffNet]) : 0;
-        return;
+        return nil;
     }
-#ifdef FUN_NEED_SECURITY_REQUEST
-    BOOL checkResult = [self checkRequestSecurity:remotePath completion:^(BOOL isSucceed, NSError *err) {
-        if (isSucceed) {
-            [self startDownload:remotePath header:header body:body withSavePath:localPath completion:completion progressBlock:progressBlock];
-        } else {
-            completion ? completion(nil, nil, err) : 0;
-        }
-    }];
-    if (!checkResult) {
-        return;
-    }
-#endif
     
+#ifdef FUN_NEED_SECURITY_REQUEST
+    NSString *requestId = [self prepareForSecurityRequest:remotePath sucureCompletion:^NSString *{
+        return [self startExecuteDownload:remotePath header:header body:body withSavePath:localPath completion:completion progressBlock:progressBlock];
+    } failCompletion:completion];
+    return requestId;
+#endif
+    return [self startExecuteDownload:remotePath header:header body:body withSavePath:localPath completion:completion progressBlock:progressBlock];
+}
+
++ (NSString *)startExecuteDownload:(NSString *)remotePath
+                            header:(NSDictionary *)header
+                              body:(NSDictionary *)body
+                      withSavePath:(NSString *)localPath
+                        completion:(MJResponseBlock)completion
+                     progressBlock:(void (^)(NSUInteger bytesRead, long long totalBytesRead, long long totalBytesExpectedToRead))progressBlock
+{
+    NSString *requestId = [[NSUUID UUID] UUIDString];
     LogTrace(@"...>>>...Start download file : %@\n", remotePath);
     
     NSString *remoteFilePath = remotePath;
@@ -646,9 +775,12 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
                 }
             }
             completion ? completion(response, filePath, err?:error) : nil;
+            [s_dicRequest removeObjectForKey:requestId];
         });
     }];
+    [s_dicRequest setObject:downloadTask forKey:requestId];
     [downloadTask resume];
+    return requestId;
 }
 
 #pragma mark - Private
@@ -681,6 +813,20 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
     return err;
 }
 
++ (NSError *)errorCanceled
+{
+    static NSError *err;
+    if (err == nil) {
+        err = [[NSError alloc] initWithDomain:kErrorDomainWebService
+                                         code:sNetworkCodeCanceled
+                                     userInfo:@{
+                                                NSLocalizedDescriptionKey:locString(sNetworkCanceled),
+                                                NSLocalizedFailureReasonErrorKey:locString(sNetworkCanceled)
+                                                }];
+    }
+    return err;
+}
+
 + (AFHTTPSessionManager *)managerWithHeader:(NSDictionary *)header
 {
     AFHTTPSessionManager *manager = [AFHTTPSessionManager manager];
@@ -701,6 +847,10 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
                              forHTTPHeaderField:aKey];
         }
     }
+    // 证书信任统一处理
+    [manager setSessionDidReceiveAuthenticationChallengeBlock:^NSURLSessionAuthChallengeDisposition(NSURLSession * _Nonnull session, NSURLAuthenticationChallenge * _Nonnull challenge, NSURLCredential *__autoreleasing  _Nullable * _Nullable credential) {
+        return s_sessionDidReceiveChallengeBlock(nil, session, challenge, credential);
+    }];
     return manager;
 }
 

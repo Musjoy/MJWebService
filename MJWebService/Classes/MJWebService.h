@@ -50,10 +50,12 @@ static NSString *const kErrorDomainWebService   = @"WebService";
 
 #define sNetworkCodeOffNet          -10000
 #define sNetworkCodeForbidden       -20000
+#define sNetworkCodeCanceled        -30000
 // 相关提示文字
 #define sNetworkErrorMsg            @"Network Error"
 #define sNetworkUnreachMsg          @"Network Unreachable"
 #define sNetworkForbidden           @"Network Forbidden"
+#define sNetworkCanceled            @"Request Canceled"
 
 #ifndef STAT_DOMAIN_ROOT_CA
 #define STAT_DOMAIN_ROOT_CA    @"DomainRootCA"
@@ -63,10 +65,16 @@ static NSString *const kErrorDomainWebService   = @"WebService";
 typedef NSURLSessionAuthChallengeDisposition (^MJURLSessionDidReceiveChallengeBlock)(NSString *domain, NSURLSession *session, NSURLAuthenticationChallenge *challenge, NSURLCredential * __autoreleasing *credential);
 
 typedef NS_ENUM(NSInteger, MJReachabilityStatus) {
-    MJReachabilityStatusUnknown          = -1,
-    MJReachabilityStatusNotReachable     = 0,
-    MJReachabilityStatusReachableViaWWAN = 1,
-    MJReachabilityStatusReachableViaWiFi = 2,
+    MJReachabilityStatusUnknown             = -1,
+    MJReachabilityStatusNotReachable        = 0,
+    MJReachabilityStatusReachableViaWWAN    = 1,
+    MJReachabilityStatusReachableViaWiFi    = 2,
+};
+
+typedef NS_ENUM(NSInteger, MJRequestSecurityState) {
+    MJRequestSecurityStateUnknown           = 0,
+    MJRequestSecurityStateUnsafe            = 1,
+    MJRequestSecurityStateSecure            = 2,
 };
 
 /// Returns a localized string representation of an `MJReachabilityStatus` value.
@@ -85,60 +93,78 @@ typedef void (^RequestFailureBlock)(NSError *error);
 
 + (void)dataInit;
 
+/// 当前网络状态
 + (MJReachabilityStatus)reachableState;
 
+/// 当前请求安全性 暂时去掉
+//+ (MJRequestSecurityState)requestSecurityStateOf:(NSString *)serverUrl;
+
+/// 请求时的证书验证回调
 + (void)setSesionDidReceiveChallengeBlock:(MJURLSessionDidReceiveChallengeBlock)sesionDidReceiveChallengeBlock;
 
 // 检查链接是否安全
-+ (BOOL)checkRequestSecurity:(NSString *)serverUrl completion:(void(^)(BOOL isSucceed, NSError *err))completion;
++ (NSString *)checkRequestSecurity:(NSString *)serverUrl completion:(void(^)(MJRequestSecurityState requestSecurityState, NSError *err))completion;
 
-+ (void)startGet:(NSString *)serverUrl
-            body:(NSDictionary *)body
-      completion:(MJResponseBlock)completion;
+// 取消一个网络请求
++ (void)cancelRequestWith:(NSString *)requestId;
 
-+ (void)startGetText:(NSString *)serverUrl
-                body:(NSDictionary *)body
-          completion:(MJResponseBlock)completion;
+/**
+ *  @brief  Get请求接口
+ *
+ *  @param  serverUrl       接口服务地址
+ *  @param  body            请求的body数据
+ *  @param  completion      请求完成回调
+ *
+ *  @return NSString        requestId, 返回请求ID，用于取消请求
+ */
++ (NSString *)startGet:(NSString *)serverUrl
+                  body:(NSDictionary *)body
+            completion:(MJResponseBlock)completion;
 
-+ (void)startGet:(NSString *)serverUrl
-          header:(NSDictionary *)header
-            body:(NSDictionary *)body
-      completion:(MJResponseBlock)completion;
++ (NSString *)startGetText:(NSString *)serverUrl
+                      body:(NSDictionary *)body
+                completion:(MJResponseBlock)completion;
+
++ (NSString *)startGet:(NSString *)serverUrl
+                header:(NSDictionary *)header
+                  body:(NSDictionary *)body
+            completion:(MJResponseBlock)completion;
 
 /**
  *	@brief	post请求接口
  *
- *	@param 	serverUrl       接口服务地址
+ *	@param  serverUrl       接口服务地址
  *	@param 	body            请求的body数据
  *	@param 	completion      请求完成回调
  *
+ *  @return NSString        requestId, 返回请求ID，用于取消请求
  */
-+ (void)startPost:(NSString *)serverUrl
-             body:(NSDictionary *)body
-       completion:(MJResponseBlock)completion;
++ (NSString *)startPost:(NSString *)serverUrl
+                   body:(NSDictionary *)body
+             completion:(MJResponseBlock)completion;
 
-+ (void)startPost:(NSString *)serverUrl
-           header:(NSDictionary *)header
-             body:(NSDictionary *)body
-       completion:(MJResponseBlock)completion;
++ (NSString *)startPost:(NSString *)serverUrl
+                 header:(NSDictionary *)header
+                   body:(NSDictionary *)body
+             completion:(MJResponseBlock)completion;
 
-+ (void)startPut:(NSString *)serverUrl
-            body:(NSDictionary *)body
-      completion:(MJResponseBlock)completion;
++ (NSString *)startPut:(NSString *)serverUrl
+                  body:(NSDictionary *)body
+            completion:(MJResponseBlock)completion;
 
-+ (void)startPut:(NSString *)serverUrl
-          header:(NSDictionary *)header
-            body:(NSDictionary *)body
-      completion:(MJResponseBlock)completion;
++ (NSString *)startPut:(NSString *)serverUrl
+                header:(NSDictionary *)header
+                  body:(NSDictionary *)body
+            completion:(MJResponseBlock)completion;
 
-+ (void)startDelete:(NSString *)serverUrl
-               body:(NSDictionary *)body
-         completion:(MJResponseBlock)completion;
++ (NSString *)startDelete:(NSString *)serverUrl
+                     body:(NSDictionary *)body
+               completion:(MJResponseBlock)completion;
 
-+ (void)startDelete:(NSString *)serverUrl
-             header:(NSDictionary *)header
-               body:(NSDictionary *)body
-         completion:(MJResponseBlock)completion;
++ (NSString *)startDelete:(NSString *)serverUrl
+                   header:(NSDictionary *)header
+                     body:(NSDictionary *)body
+               completion:(MJResponseBlock)completion;
 /**
  *	@brief	多文件上传接口
  *
@@ -147,17 +173,18 @@ typedef void (^RequestFailureBlock)(NSError *error);
  *	@param 	files           请求文件列表，eg：@[@"本地文件全路径", @"本地文件全路径"]
  *	@param 	completion      请求完成回调
  *
+ *  @return NSString        requestId, 返回请求ID，用于取消请求
  */
-+ (void)startUploadFiles:(NSString *)serverUrl
-                    body:(NSDictionary *)body
-                   files:(NSArray *)files
-              completion:(MJResponseBlock)completion;
++ (NSString *)startUploadFiles:(NSString *)serverUrl
+                          body:(NSDictionary *)body
+                         files:(NSArray *)files
+                    completion:(MJResponseBlock)completion;
 
-+ (void)startUploadFiles:(NSString *)serverUrl
-                  header:(NSDictionary *)header
-                    body:(NSDictionary *)body
-                   files:(NSArray *)files
-              completion:(MJResponseBlock)completion;
++ (NSString *)startUploadFiles:(NSString *)serverUrl
+                        header:(NSDictionary *)header
+                          body:(NSDictionary *)body
+                         files:(NSArray *)files
+                    completion:(MJResponseBlock)completion;
 
 /**
  *	@brief	单个文件下载
@@ -166,17 +193,19 @@ typedef void (^RequestFailureBlock)(NSError *error);
  *	@param 	localPath       下载文件的本地保存路径
  *	@param 	completion      请求完成的回调, respondOrErr: 成功是为NSURLResponse，失败为NSError或nil
  *	@param 	progressBlock 	下载进度回调: bytesRead-已读子节; totalBytesRead-总字节; totalBytesExpectedToRead-未读子节
+ *
+ *  @return NSString        requestId, 返回请求ID，用于取消请求
  */
-+ (void)startDownload:(NSString *)remotePath
-         withSavePath:(NSString *)localPath
-           completion:(MJResponseBlock)completion
-        progressBlock:(void (^)(NSUInteger bytesRead, long long totalBytesRead, long long totalBytesExpectedToRead))progressBlock;
++ (NSString *)startDownload:(NSString *)remotePath
+               withSavePath:(NSString *)localPath
+                 completion:(MJResponseBlock)completion
+              progressBlock:(void (^)(NSUInteger bytesRead, long long totalBytesRead, long long totalBytesExpectedToRead))progressBlock;
 
-+ (void)startDownload:(NSString *)remotePath
-               header:(NSDictionary *)header
-                 body:(NSDictionary *)body
-         withSavePath:(NSString *)localPath
-           completion:(MJResponseBlock)completion
-        progressBlock:(void (^)(NSUInteger bytesRead, long long totalBytesRead, long long totalBytesExpectedToRead))progressBlock;
++ (NSString *)startDownload:(NSString *)remotePath
+                     header:(NSDictionary *)header
+                       body:(NSDictionary *)body
+               withSavePath:(NSString *)localPath
+                 completion:(MJResponseBlock)completion
+              progressBlock:(void (^)(NSUInteger bytesRead, long long totalBytesRead, long long totalBytesExpectedToRead))progressBlock;
 
 @end
