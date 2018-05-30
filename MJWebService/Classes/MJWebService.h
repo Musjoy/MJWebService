@@ -72,9 +72,9 @@ typedef NS_ENUM(NSInteger, MJReachabilityStatus) {
 };
 
 typedef NS_ENUM(NSInteger, MJRequestSecurityState) {
+    MJRequestSecurityStateUnsafe            = -1,
     MJRequestSecurityStateUnknown           = 0,
-    MJRequestSecurityStateUnsafe            = 1,
-    MJRequestSecurityStateSecure            = 2,
+    MJRequestSecurityStateSecure            = 1,
 };
 
 /// Returns a localized string representation of an `MJReachabilityStatus` value.
@@ -103,7 +103,7 @@ typedef void (^RequestFailureBlock)(NSError *error);
 + (void)setSesionDidReceiveChallengeBlock:(MJURLSessionDidReceiveChallengeBlock)sesionDidReceiveChallengeBlock;
 
 // 检查链接是否安全
-+ (NSString *)checkRequestSecurity:(NSString *)serverUrl completion:(void(^)(MJRequestSecurityState requestSecurityState, NSError *err))completion;
++ (NSString *)checkRequestSecurity:(NSString *)serverUrl completion:(void(^)(MJRequestSecurityState securityState, NSError *err))completion;
 
 // 取消一个网络请求
 + (void)cancelRequestWith:(NSString *)requestId;

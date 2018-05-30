@@ -242,7 +242,7 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
         NSArray *arrCompletion = [arrCheckCompletion copy];
         if ([arrCompletion count] > 0) {
             for (NSString *aRequestId in arrCompletion) {
-                void(^aCompletion)(BOOL, NSError *) = [s_dicRequest objectForKey:aRequestId];
+                void(^aCompletion)(MJRequestSecurityState, NSError *) = [s_dicRequest objectForKey:aRequestId];
                 if (aCompletion) {
                     aCompletion(securityState, err);
                     [s_dicRequest removeObjectForKey:aRequestId];
@@ -291,11 +291,11 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
 + (NSString *)prepareForSecurityRequest:(NSString *)serverUrl sucureCompletion:(NSString * (^)(void))completion failCompletion:(MJResponseBlock)failCompletion
 {
     __block NSString *requestId = nil;
-    NSString *securityRequestId = [self checkRequestSecurity:serverUrl completion:^(MJRequestSecurityState requestSecurityState, NSError *err) {
+    NSString *securityRequestId = [self checkRequestSecurity:serverUrl completion:^(MJRequestSecurityState securityState, NSError *err) {
         
-        if (requestSecurityState != MJRequestSecurityStateUnknown) {
+        if (securityState != MJRequestSecurityStateUnknown) {
             // 该请求安全性已确认，可以直接回调
-            if (requestSecurityState == MJRequestSecurityStateUnsafe) {
+            if (securityState == MJRequestSecurityStateUnsafe) {
                 failCompletion ? failCompletion(nil, nil, [self errorForbidden]) : 0;
             } else {
                 // 这里开始实际的网络请求调用
