@@ -722,13 +722,7 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
     }
     
     // 避免同时下载数据到同一个文件
-    NSString *filePathTemp = [NSString stringWithFormat:@"%@.temp",localPath];   //临时下载的文件路径
-    int count = 1;
-    NSFileManager *fileManager = [NSFileManager defaultManager];
-    while ([fileManager fileExistsAtPath:filePathTemp]) {
-        filePathTemp = [NSString stringWithFormat:@"%@.temp_%d", localPath, count];
-        count ++;
-    }
+    NSString *filePathTemp = [NSString stringWithFormat:@"%@.temp-%@",localPath, requestId];   //临时下载的文件路径
     
     NSURLSessionConfiguration *configuration = [NSURLSessionConfiguration defaultSessionConfiguration];
     AFURLSessionManager *manager = [[AFURLSessionManager alloc] initWithSessionConfiguration:configuration];
