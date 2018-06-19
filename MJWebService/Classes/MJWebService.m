@@ -268,6 +268,9 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
     
     // 证书信任统一处理
     [manager setSessionDidReceiveAuthenticationChallengeBlock:^NSURLSessionAuthChallengeDisposition(NSURLSession * _Nonnull session, NSURLAuthenticationChallenge * _Nonnull challenge, NSURLCredential *__autoreleasing  _Nullable * _Nullable credential) {
+        if ([[curCheckResult objectForKey:@"haveCheck"] boolValue]) {
+            return NSURLSessionAuthChallengePerformDefaultHandling;
+        }
         [curCheckResult setObject:@YES forKey:@"haveCheck"];
         return s_sessionDidReceiveChallengeBlock(url.host, session, challenge, credential);
     }];
