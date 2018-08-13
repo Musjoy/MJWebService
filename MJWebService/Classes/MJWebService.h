@@ -25,7 +25,8 @@
 @"Go Daddy Root Certificate Authority - G2",\
 @"Baltimore CyberTrust Root",\
 @"DigiCert Global Root CA",\
-@"COMODO ECC Certification Authority"\
+@"COMODO ECC Certification Authority",\
+@"GlobalSign"\
 ]
 #endif
 
