@@ -186,6 +186,9 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
     }
     NSURL *url = [NSURL URLWithString:serverUrl];
     NSString *hostUrl = [NSString stringWithFormat:@"%@://%@", url.scheme, url.host];
+    if (url.port && [url.port intValue] != 443) {
+        hostUrl = [hostUrl stringByAppendingFormat:@":%@", url.port];
+    }
     
     NSMutableDictionary *curCheckResult = [s_dicHostCheckResult objectForKey:hostUrl];
     if (curCheckResult) {
