@@ -841,6 +841,12 @@ NSString * MJStringFromReachabilityStatus(MJReachabilityStatus status) {
             manager.responseSerializer = [AFHTTPResponseSerializer serializer];
             [dicHeader removeObjectForKey:@"textResponse"];
         }
+        if (dicHeader[@"jsonResponse"] && [dicHeader[@"jsonResponse"] boolValue]) {
+            AFJSONResponseSerializer *serializer = [AFJSONResponseSerializer serializer];
+            serializer.removesKeysWithNullValues = YES;
+            manager.responseSerializer = serializer;
+            [dicHeader removeObjectForKey:@"jsonResponse"];
+        }
         for (NSString *aKey in dicHeader.allKeys) {
             NSString *aValue = dicHeader[aKey];
             [manager.requestSerializer setValue:aValue
